@@ -6,9 +6,10 @@ env = gym.make('gym_newcartpole:newcartpole-v0')
 
 # env = gym.make('CartPole-v0')
 
-model = PPO('MlpPolicy', env, verbose=1)
-model.learn(total_timesteps=60000)
+# model = PPO('MlpPolicy', env, verbose=1)
+# model.learn(total_timesteps=60000)
 
+model = PPO.load("saved_models/Lagrange_Dynamics_CartPole_Model.zip")
 # obs = env.reset()
 # for i in range(1000):
 #     action, _states = model.predict(obs, deterministic=True)
@@ -19,10 +20,7 @@ model.learn(total_timesteps=60000)
 #
 # env.close()
 
-model.save("saved_models/Lagrange_Dynamics_CartPole_Model")
-
-
-
+# model.save("saved_models/Lagrange_Dynamics_CartPole_Model")
 
 
 for i_episode in range(1):
