@@ -1,4 +1,4 @@
-#New Cartpole for OpenAI GYM 
+# New Cartpole for OpenAI GYM 
 
 This is a testing environment for learning how to implement customized versions of GYM environments 
 
