@@ -5,19 +5,20 @@ figure(1)
 cart = polyshape([0 0 2 2 ],[2 0 0 2]);
 pole = polyshape([1 1 1.5 1.5 ],[8 2 2 8]);
 
+
 % Parameters 
 mp = 1; 
 m = 5 ; 
-g = -9.81; 
+g = 9.81; 
 L = 1;
 % F_x = 1 ;
 
-x = 0; 
+x = 0;
 x_dot =0; 
 x_ddot =0; 
 
 theta =0 ; 
-theta_dot =0; 
+theta_dot =5; 
 theta_ddot =0; 
 
 h=.1;
@@ -45,13 +46,20 @@ for k=1:1:100
     
     
     cart = translate(cart,[x,0]); 
-    pole = rotate(pole,theta);
+    pole = rotate(pole,theta, [1.25, 2]);
     
     figure(1)
-    plot(cart)
-    figure(2)
-    plot(pole)
     
+    
+%     plot(cart)
+    hold on
+    ps =  plot(pole);
+    ps.FaceColor = '#808080';
+    cs = plot(cart); 
+    cs.FaceColor = '#8B4513';
+    
+    hold off
+   
     xlim([0 10])
     ylim([0 10])
     pause(.2);
