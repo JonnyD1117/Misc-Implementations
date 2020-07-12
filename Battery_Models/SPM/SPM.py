@@ -1,5 +1,6 @@
 from ScottBatteryParams import *
 import numpy as np
+import matplotlib.pyplot as plt
 
 
 from math import asinh, tanh
@@ -76,8 +77,11 @@ xn = np.zeros([3, Kup+1])
 xp = np.zeros([3, Kup+1])
 yn = np.zeros(Kup+1)
 yp = np.zeros(Kup+1)
-theta_n = np.zeros(Kup+1)
-theta_p = np.zeros(Kup+1)
+theta_n = np.zeros(Kup)
+theta_p = np.zeros(Kup)
+V_term = np.zeros(Kup)
+time = np.zeros(Kup)
+
 
 xn[:, [0]] = np.array([[stoi_x * cs_max_n / (rfa_n * 10395 * Ds_n ** 2)], [0], [0]]) # stoi_x100 should be changed if the initial soc is not equal to 50 %
 xp[:, [0]] = np.array([[stoi_y * cs_max_p / (rfa_p * 10395 * Ds_p ** 2)], [0], [0]]) # initial positive electrode ion concentration
@@ -100,6 +104,7 @@ D_dp = Dp
 
 
 for k in range(0, Kup):
+    time[k] = k
 
     """    # Negative electrode three-state state space model for the particle
     I_Qdyn1[k] = I[k]
@@ -159,9 +164,27 @@ for k in range(0, Kup):
     U_n = OCV_Anode(theta_n[k])
     U_p = OCV_Cathod(theta_p[k])
 
-    V_term = U_p - U_n + eta_p - eta_n
+    V_term[k] = U_p - U_n + eta_p - eta_n
 
 
 
 
 
+plt.figure(1)
+plt.title("Terminal Voltage vs time")
+plt.xlabel("Time [sec]")
+plt.ylabel("Volts")
+plt.plot(time,V_term)
+
+plt.figure(2)
+plt.title("Input Current vs time")
+plt.xlabel("Time [sec]")
+plt.ylabel("Current")
+plt.plot(time,I)
+
+plt.figure(3)
+plt.title("SOC vs time")
+plt.xlabel("Time [sec]")
+plt.ylabel("State of Charg")
+plt.plot(time,theta_n)
+plt.show()
