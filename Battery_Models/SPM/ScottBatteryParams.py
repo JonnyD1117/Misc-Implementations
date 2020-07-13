@@ -36,7 +36,7 @@ stoi_x100 = 0.6760
 stoi_y0 = 0.8228     # Stoich. Coef for Negative Electrode
 stoi_y100 = 0.442
 
-SOC = 0              # SOC can change from 0 to 1
+SOC = .5              # SOC can change from 0 to 1
 
 # Interpolate Value of SOC (aka - stoich. coef.) given min & max coef. values
 stoi_x = (stoi_x100-stoi_x0)*SOC+stoi_x0      # Positive Electrode Interpolant
