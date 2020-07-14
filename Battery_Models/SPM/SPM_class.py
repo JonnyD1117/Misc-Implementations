@@ -1,15 +1,12 @@
 from ScottBatteryParams import *
 import numpy as np
 import matplotlib.pyplot as plt
-
 from math import asinh, tanh
 
 
-
-
-class SingleParticleModel(np):
-    def __init__(self, timestep=1, sim_duration=1300, initial_SOC=.5, C_Rate="1C" ):
-        super(SingleParticleModel, self).__init__()
+class SingleParticleModel:
+    def __init__(self, timestep=1, sim_duration=1300, initial_SOC=.5, C_Rate="1C"):
+        # super(SingleParticleModel, self).__init__()
 
         # Simulation Settings
         self.dt = timestep
@@ -25,7 +22,7 @@ class SingleParticleModel(np):
         self.C_rate = C_Rate
         self.C_rate_list = {"1C": 3601, "2C": 1712, "3C": 1083, "Qingzhi_C": 1300}
 
-        self.CC_input_profile = self.base_current*np.ones(self.C_rate_list["Qingzhi"])
+        self.CC_input_profile = self.default_current*np.ones(self.C_rate_list["Qingzhi_C"])
 
         # Model Parameters & Variables
         ###################################################################
@@ -56,8 +53,8 @@ class SingleParticleModel(np):
         self.D_dn = self.Dn
 
         # Model Initialization
-
-    def OCV_Anode(self, theta):
+    @staticmethod
+    def OCV_Anode(theta):
         # DUALFOIL: MCMB 2528 graphite(Bellcore) 0.01 < x < 0.9
         Uref = 0.194 + 1.5 * np.exp(-120.0 * theta)
         + 0.0351 * tanh((theta - 0.286) / 0.083)
@@ -71,7 +68,8 @@ class SingleParticleModel(np):
 
         return Uref
 
-    def OCV_Cathod(self, theta):
+    @staticmethod
+    def OCV_Cathod(theta):
         Uref = 2.16216 + 0.07645 * tanh(30.834 - 54.4806 * theta)
         + 2.1581 * tanh(52.294 - 50.294 * theta)
         - 0.14169 * tanh(11.0923 - 19.8543 * theta)
@@ -81,7 +79,8 @@ class SingleParticleModel(np):
 
         return Uref
 
-    def compute_Stoich_coef(self, state_of_charge):
+    @staticmethod
+    def compute_Stoich_coef(state_of_charge):
         """
         Compute Stoichiometry Coefficients (ratio of surf. Conc to max conc.) from SOC value via Interpolation
         """
@@ -91,7 +90,8 @@ class SingleParticleModel(np):
         stoi_p = stoi_p0 - (stoi_p0 - stoi_p100) * alpha  # Positive Electrode Interpolant
         return [stoi_n, stoi_p]
 
-    def compute_SOC(self, theta_n, theta_p):
+    @staticmethod
+    def compute_SOC(theta_n, theta_p):
         """
         Computes the value of the SOC from either (N or P) electrode given the current
         Stoichiometry Number (Ratio of Surface Conc. to Max Surface Conc. )
@@ -101,8 +101,9 @@ class SingleParticleModel(np):
 
         return [SOC_n, SOC_p]
 
-    def plot_results(self):
-        plt.figure(1)
+    @staticmethod
+    def plot_results():
+        """plt.figure(1)
         plt.title("Terminal Voltage vs time")
         plt.xlabel("Time [sec]")
         plt.ylabel("Volts")
@@ -119,15 +120,15 @@ class SingleParticleModel(np):
         plt.xlabel("Time [sec]")
         plt.ylabel("State of Charg")
         plt.plot(time, theta_n)
-        plt.show()
+        plt.show()"""
 
-    def sim(self, I_input, SOC_0):
+    def sim(self, I_input=None, SOC_0=None):
         """
         sim function runs complete solution given a timeseries current profile
         :return: [Terminal Voltage (time series), SOC (time Series) Input Current Profile (time series) ]
         """
         Kup = self.num_steps
-        # discharge
+
         # Populate State Variables with Initial Condition
         xn = np.zeros([3, Kup + 1])
         xp = np.zeros([3, Kup + 1])
@@ -138,68 +139,30 @@ class SingleParticleModel(np):
         V_term = np.zeros(Kup)
         time = np.zeros(Kup)
 
-
-
-
-
-
-        # # Initialize "State" Vector
-        # xn[:, [0]] = np.array([[stoi_x * cs_max_n / (rfa_n * 10395 * Ds_n ** 2)], [0], [0]])  # stoi_x100 should be changed if the initial soc is not equal to 50 %
-        # xp[:, [0]] = np.array([[stoi_y * cs_max_p / (rfa_p * 10395 * Ds_p ** 2)], [0], [0]])  # initial positive electrode ion concentration
-
-
-
-
-
-
-        if self.default_input:
-
-
-
-
+        # Set Initial Simulation (Step0) Parameters/Inputs
+        if SOC_0 is not None:
+            input_soc = SOC_0
         else:
+            input_soc = self.compute_SOC(theta_n[0])
+        input_state = None
 
+        if I_input is None:
+            input_current = self.CC_input_profile[0]
+        else:
+            input_current = I_input
 
-        for k in range(0, self):
+        for k in range(0, Kup):
 
+            # Perform one iteration of simulation using "step" method
+            states, soc_new, V_out, theta = self.step(input_state, input_current, input_soc)
 
+            # Update "step"s inputs to continue and update the simulation
+            input_state, input_soc, input_current = states, soc_new, self.CC_input_profile[k+1]
 
+            # Record Desired values for post-simulation plotting/analysis
+            xn[:, [k]], xp[:, [k]], theta_n[k], theta_p[k], V_term[k], time[k] = states["xn"], states["xp"], theta[0], theta[1], V_out, self.dt*k
 
-            [] = self.step()
-            """time[k] = k
-
-            # Molar Current Flux Density (Assumed UNIFORM for SPM)
-            Jn = I[k] / Vn
-            Jp = I[k] / Vp
-
-            # Compute "current timestep" Concentration from "Battery States" via Output Eqn (Pos & Neg)
-            yn[k] = C_dn @ xn[:, k] + D_dn * 0
-            yp[k] = C_dp @ xp[:, k] + D_dp * 0
-
-            # Compute "NEXT" time step "Battery States" via State Space Models (Pos & Neg)
-            xn[:, [k + 1]] = A_dn @ xn[:, [k]] + B_dn * Jn
-            xp[:, [k + 1]] = A_dp @ xp[:, [k]] + B_dp * Jp
-
-            if k == 1:
-                print(xp[:, [k + 1]])
-
-            # Compute "Exchange Current Density" per Electrode (Pos & Neg)
-            i_0n = kn * F * (cen ** .5) * ((yn[k]) ** .5) * ((cs_max_n - yn[k]) ** .5)
-            i_0p = kp * F * (cep ** .5) * ((yp[k]) ** .5) * ((cs_max_p - yp[k]) ** .5)
-
-            # Compute Electrode "Overpotentials"
-            eta_n = ((2 * R * T) / F) * asinh((Jn * F) / (2 * i_0n))
-            eta_p = ((2 * R * T) / F) * asinh((Jp * F) / (2 * i_0p))
-
-            # Record SOC of Cell
-            theta_n[k] = yn[k] / cs_max_n
-            theta_p[k] = yp[k] / cs_max_p
-
-            U_n = self.OCV_Anode(theta_n[k])
-            U_p = self.OCV_Cathod(theta_p[k])
-
-            V_term[k] = U_p - U_n + eta_p - eta_n"""
-        return
+        return [xn, xp, theta_n, theta_p, V_term, time]
 
     def step(self, states=None, I_input=None, state_of_charge=None):
         """
@@ -210,12 +173,15 @@ class SingleParticleModel(np):
         A_dp = self.A_dp
         B_dp = self.B_dp
         C_dp = self.C_dp
-        D_dp = self.C_dp
+        D_dp = self.D_dp
 
         A_dn = self.A_dn
         B_dn = self.B_dn
         C_dn = self.C_dn
         D_dn = self.D_dn
+
+        print("Pos Electrode C Mat", np.shape(C_dp))
+        print("Neg Electrode C Mat", np.shape(C_dn))
 
         # Initialize Input Current
         if I_input is None:
@@ -237,6 +203,9 @@ class SingleParticleModel(np):
             xn_old = np.array([[stoi_n * cs_max_n / (rfa_n * 10395 * Ds_n ** 2)], [0], [0]])  # stoi_n100 should be changed if the initial soc is not equal to 50 %
             xp_old = np.array([[stoi_p * cs_max_p / (rfa_p * 10395 * Ds_p ** 2)], [0], [0]])  # initial positive electrode ion concentration
 
+            states = {"xn": xn_old, "xp": xp_old}
+            outputs = {"yn": None, "yp": None}
+
         else:
             # ELSE use given states information to propagate model forward in time
             xn_old, xp_old = states["xn"], states["xp"]
@@ -248,6 +217,8 @@ class SingleParticleModel(np):
         # Compute "current timestep" Concentration from "Battery States" via Output Eqn (Pos & Neg)
         yn_new = C_dn @ xn_old + D_dn * 0
         yp_new = C_dp @ xp_old + D_dp * 0
+
+        outputs["yn"], outputs["yp"] = yn_new, yp_new
 
         # Compute "NEXT" time step "Battery States" via State Space Models (Pos & Neg)
         xn_new = A_dn @ xn_old + B_dn * Jn
@@ -275,13 +246,14 @@ class SingleParticleModel(np):
         U_p = self.OCV_Cathod(theta_p)
         V_term = U_p - U_n + eta_p - eta_n
 
-
         return [states, soc_new, V_term, theta]
 
 
+if __name__ == "__main__":
 
+    SPM = SingleParticleModel()
+    # [states, soc_new, V_term, theta] = SPM.step()
 
+    [xn, xp, theta_n, theta_p, V_term, time] = SPM.sim()
 
-
-
-
+    print(V_term)
