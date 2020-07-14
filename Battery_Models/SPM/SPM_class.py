@@ -22,7 +22,8 @@ class SingleParticleModel:
         self.C_rate = C_Rate
         self.C_rate_list = {"1C": 3601, "2C": 1712, "3C": 1083, "Qingzhi_C": 1300}
 
-        self.CC_input_profile = self.default_current*np.ones(self.C_rate_list["Qingzhi_C"])
+        self.CC_input_profile = self.default_current*np.ones(self.C_rate_list["Qingzhi_C"]+1)
+        self.CC_input_profile[0] = 0
 
         # Model Parameters & Variables
         ###################################################################
@@ -138,12 +139,16 @@ class SingleParticleModel:
         theta_p = np.zeros(Kup)
         V_term = np.zeros(Kup)
         time = np.zeros(Kup)
+        input_cur_prof = np.zeros(Kup)
+
 
         # Set Initial Simulation (Step0) Parameters/Inputs
         if SOC_0 is not None:
             input_soc = SOC_0
-        else:
-            input_soc = self.compute_SOC(theta_n[0])
+        # else:
+        #     # theta_n, theta_p = self.compute_Stoich_coef()
+        #     # input_soc, _ = self.compute_SOC(theta_n[0], theta_p[0])
+        #     input_soc = .5
         input_state = None
 
         if I_input is None:
@@ -151,18 +156,17 @@ class SingleParticleModel:
         else:
             input_current = I_input
 
+        # Main Simulation Loop
         for k in range(0, Kup):
-
             # Perform one iteration of simulation using "step" method
             states, soc_new, V_out, theta = self.step(input_state, input_current, input_soc)
 
+            # Record Desired values for post-simulation plotting/analysis
+            xn[:, [k]], xp[:, [k]], theta_n[k], theta_p[k], V_term[k], time[k], input_cur_prof[k] = states["xn"], states["xp"], theta[0].item(), theta[1].item(), V_out.item(), self.dt * k, input_current
             # Update "step"s inputs to continue and update the simulation
             input_state, input_soc, input_current = states, soc_new, self.CC_input_profile[k+1]
 
-            # Record Desired values for post-simulation plotting/analysis
-            xn[:, [k]], xp[:, [k]], theta_n[k], theta_p[k], V_term[k], time[k] = states["xn"], states["xp"], theta[0], theta[1], V_out, self.dt*k
-
-        return [xn, xp, theta_n, theta_p, V_term, time]
+        return [xn, xp, theta_n, theta_p, V_term, time, input_cur_prof]
 
     def step(self, states=None, I_input=None, state_of_charge=None):
         """
@@ -180,9 +184,6 @@ class SingleParticleModel:
         C_dn = self.C_dn
         D_dn = self.D_dn
 
-        print("Pos Electrode C Mat", np.shape(C_dp))
-        print("Neg Electrode C Mat", np.shape(C_dn))
-
         # Initialize Input Current
         if I_input is None:
             I = self.default_current     # If no input signal is provided use CC @ default input value
@@ -199,6 +200,8 @@ class SingleParticleModel:
         if states is None:
             stoi_n, stoi_p = self.compute_Stoich_coef(soc)
 
+            print(stoi_n)
+
             # IF not initial state is supplied to the "step" method, treat step as initial step
             xn_old = np.array([[stoi_n * cs_max_n / (rfa_n * 10395 * Ds_n ** 2)], [0], [0]])  # stoi_n100 should be changed if the initial soc is not equal to 50 %
             xp_old = np.array([[stoi_p * cs_max_p / (rfa_p * 10395 * Ds_p ** 2)], [0], [0]])  # initial positive electrode ion concentration
@@ -209,10 +212,11 @@ class SingleParticleModel:
         else:
             # ELSE use given states information to propagate model forward in time
             xn_old, xp_old = states["xn"], states["xp"]
+            outputs = {"yn": None, "yp": None}
 
         # Molar Current Flux Density (Assumed UNIFORM for SPM)
         Jn = I / Vn
-        Jp = I / Vp
+        Jp = -I / Vp
 
         # Compute "current timestep" Concentration from "Battery States" via Output Eqn (Pos & Neg)
         yn_new = C_dn @ xn_old + D_dn * 0
@@ -252,8 +256,18 @@ class SingleParticleModel:
 if __name__ == "__main__":
 
     SPM = SingleParticleModel()
-    # [states, soc_new, V_term, theta] = SPM.step()
+    sim_out = SPM.step()
+    print(sim_out)
 
-    [xn, xp, theta_n, theta_p, V_term, time] = SPM.sim()
 
-    print(V_term)
+    [step_states, step_soc_new, V_terminal, step_theta] = sim_out
+    print(V_terminal)
+    # [xn, xp, theta_n, theta_p, V_term, time, current] = SPM.sim()
+
+
+    # plt.plot(time,V_term)
+    # # plt.plot(time, current)
+    # plt.show()
+    #
+    # print(V_term)
+    # print(time)
