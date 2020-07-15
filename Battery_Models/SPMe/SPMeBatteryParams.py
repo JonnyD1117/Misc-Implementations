@@ -26,6 +26,8 @@ Lc = Ln+Lp+Lsep       # Total Cell Thickness
 Ds_n = 3.9e-14        # Solid phase diffusion coefficient (pos & neg)
 Ds_p = 1e-13
 De = 2.7877e-10       # Electrolyte Diffusion Coefficient
+De_p = De
+De_n = De
 
 kn = 1e-5/F           # Rate constant of exchange current density (Reaction Rate) [Pos & neg]
 kp = 3e-7/F
@@ -73,4 +75,8 @@ epsi_sep = 1
 epsi_e = 0.3
 epsi_n = epsi_e
 gamak = (1-t_plus)/(F*Ar_n)
+
+kappa = 1.1046
+kappa_eff = 1.1046*(0.3**1.5)
+kappa_eff_sep = 1.1046*(1**1.5)
 

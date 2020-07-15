@@ -5,7 +5,7 @@ from math import asinh, tanh
 
 
 class SingleParticleModel_w_Electrolyte:
-    def __init__(self, timestep=1, sim_duration=1300, ):
+    def __init__(self, timestep=1, sim_duration=3600):
         # Simulation Settings
         self.dt = timestep
         self.duration = sim_duration
@@ -49,6 +49,24 @@ class SingleParticleModel_w_Electrolyte:
         self.B_dn = self.Bn * Ts
         self.C_dn = self.Cn
         self.D_dn = self.Dn
+
+        # electrolyte  concentration (boundary)
+        a_p0 = -(epsi_n ** (3 / 2) + 4 * epsi_sep ** (3 / 2)) / (80000 * De * epsi_n ** (3 / 2) * epsi_sep ** (3 / 2))
+        b_p0 = (epsi_n ** 2 * epsi_sep + 24 * epsi_n ** 3 + 320 * epsi_sep ** 3 + 160 * epsi_n ** (3 / 2) * epsi_sep ** (3 / 2)) / (19200000000 * (4 * De * epsi_n ** (1 / 2) * epsi_sep ** 3 + De * epsi_n ** 2 * epsi_sep ** (3 / 2)))
+
+        a_n0 = (epsi_n ** (3 / 2) + 4 * epsi_sep ** (3 / 2)) / (80000 * De * epsi_n ** (3 / 2) * epsi_sep ** (3 / 2))
+        b_n0 = (epsi_n ** 2 * epsi_sep + 24 * epsi_n ** 3 + 320 * epsi_sep ** 3 + 160 * epsi_n ** (3 / 2) * epsi_sep ** (3 / 2)) / (19200000000 * (4 * De * epsi_n ** (1 / 2) * epsi_sep ** 3 + De * epsi_n ** 2 * epsi_sep ** (3 / 2)))
+
+        self.Aep = np.array([[-1 / b_p0, 0], [0, -1 / b_n0]])
+        self.Bep = gamak * np.array([[1], [1]])
+        self.Cep = np.array([[a_p0 / b_p0, 0], [0, a_n0 / b_n0]])
+        self.Dep = np.array([0])
+
+        [n, m] = np.shape(self.Aep)
+        self.Ae_dp = np.eye(n) + self.Aep * Ts
+        self.Be_dp = self.Bep * self.dt
+        self.Ce_dp = self.Cep
+        self.De_dp = self.Dep
 
         # Model Initialization
     @staticmethod
@@ -183,6 +201,22 @@ class SingleParticleModel_w_Electrolyte:
         step function runs one iteration of the model given the input current and returns output states and quantities
         States: dict(), I_input: scalar, state_of_charge: scalar
         """
+        # Create Local Copy of Discrete SS Matrices for Ease of notation when writing Eqns.
+        A_dp = self.A_dp
+        B_dp = self.B_dp
+        C_dp = self.C_dp
+        D_dp = self.D_dp
+
+        A_dn = self.A_dn
+        B_dn = self.B_dn
+        C_dn = self.C_dn
+        D_dn = self.D_dn
+
+        Ae_dp = self.Ae_dp
+        Be_dp = self.Be_dp
+        Ce_dp = self.Ce_dp
+        De_dp = self.De_dp
+
         if full_sim is True:
             I = I_input
             soc = state_of_charge
@@ -207,53 +241,15 @@ class SingleParticleModel_w_Electrolyte:
             # IF not initial state is supplied to the "step" method, treat step as initial step
             xn_old = np.array([[(stoi_n * cs_max_n) / (rfa_n * 10395 * (Ds_n ** 2))], [0], [0]])  # stoi_n100 should be changed if the initial soc is not equal to 50 %
             xp_old = np.array([[(stoi_p * cs_max_p) / (rfa_p * 10395 * (Ds_p ** 2))], [0], [0]])  # initial positive electrode ion concentration
+            xe_old = np.array([[0], [0]])
 
-            states = {"xn": xn_old, "xp": xp_old}
-            outputs = {"yn": None, "yp": None}
+            states = {"xn": xn_old, "xp": xp_old, "xe": xe_old}
+            outputs = {"yn": None, "yp": None, "yep": None}
 
         else:
             # ELSE use given states information to propagate model forward in time
-            xn_old, xp_old = states["xn"], states["xp"]
-            outputs = {"yn": None, "yp": None}
-
-        # Create Local Copy of Discrete SS Matrices for Ease of notation when writing Eqns.
-        A_dp = self.A_dp
-        B_dp = self.B_dp
-        C_dp = self.C_dp
-        D_dp = self.D_dp
-
-        A_dn = self.A_dn
-        B_dn = self.B_dn
-        C_dn = self.C_dn
-        D_dn = self.D_dn
-
-        # electrolyte  concentration (boundary)
-        a_p0 = -(epsi_n ** (3 / 2) + 4 * epsi_sep ** (3 / 2)) / (80000 * De * epsi_n ** (3 / 2) * epsi_sep ** (3 / 2))
-        b_p0 = (epsi_n ** 2 * epsi_sep + 24 * epsi_n ** 3 + 320 * epsi_sep ** 3 + 160 * epsi_n ** (3 / 2) * epsi_sep ** (3 / 2)) / (19200000000 * (4 * De * epsi_n ** (1 / 2) * epsi_sep ** 3 + De * epsi_n ** 2 * epsi_sep ** (3 / 2)))
-
-        a_n0 = (epsi_n ** (3 / 2) + 4 * epsi_sep ** (3 / 2)) / (80000 * De * epsi_n ** (3 / 2) * epsi_sep ** (3 / 2))
-        b_n0 = (epsi_n ** 2 * epsi_sep + 24 * epsi_n ** 3 + 320 * epsi_sep ** 3 + 160 * epsi_n ** (3 / 2) * epsi_sep ** (3 / 2)) / (19200000000 * (4 * De * epsi_n ** (1 / 2) * epsi_sep ** 3 + De * epsi_n ** 2 * epsi_sep ** (3 / 2)))
-
-        Aep = np.array([[-1 / b_p0, 0], [0, -1 / b_n0]])
-        Bep = gamak * np.array([[1], [1]])
-        Cep = np.array([[a_p0 / b_p0, 0], [0, a_n0 / b_n0]])
-        Dep = np.array([0])
-
-        [n, m] = np.shape(Aep)
-        Ae_dp = np.eye(n) + Aep * self.dt
-        Be_dp = Bep * self.dt
-        Ce_dp = Cep
-        De_dp = Dep
-
-        Ce_np(:, 1)=[0; 0];
-        yep(:, k)=ce_p(:,:, k)*Ce_np(:, k);
-        Ce_np(:, k + 1)=ae_p(:,:, k)*Ce_np(:, k)+be_p * I(k);
-
-
-
-
-
-
+            xn_old, xp_old, xe_old = states["xn"], states["xp"], states["xe"]
+            outputs = {"yn": None, "yp": None, "yep": None}
 
         # Molar Current Flux Density (Assumed UNIFORM for SPM)
         Jn = I / Vn
@@ -262,54 +258,68 @@ class SingleParticleModel_w_Electrolyte:
         # Compute "current timestep" Concentration from "Battery States" via Output Eqn (Pos & Neg)
         yn_new = C_dn @ xn_old + D_dn * 0
         yp_new = C_dp @ xp_old + D_dp * 0
+        yep_new = Ce_dp @ xe_old + De_dp * 0
 
-        outputs["yn"], outputs["yp"] = yn_new, yp_new
+        outputs["yn"], outputs["yp"], outputs["yep"] = yn_new, yp_new, yep_new
 
         # Compute "NEXT" time step "Battery States" via State Space Models (Pos & Neg)
         xn_new = A_dn @ xn_old + B_dn * Jn
         xp_new = A_dp @ xp_old + B_dp * Jp
+        xe_new = Ae_dp @ xe_old + Be_dp * I
 
-        states["xn"], states["xp"] = xn_new, xp_new
+        states["xn"], states["xp"], states["xe"] = xn_new, xp_new, xe_new
+
+        # Electrolyte Dynamics
+        vel = (-I * (0.5 * Lp + 0.5 * Ln) / (Ar_n * kappa_eff) + (-I * Lsep) / (Ar_n * kappa_eff_sep) + (2 * R * T * (1 - t_plus) * (1 + 1.2383) * np.log((1000 + yep_new[0]) / (1000 + yep_new[1]))) / F)  # yep(1, k) = positive boundary;
+        R_e = -I * (0.5 * Lp + 0.5 * Ln) / (Ar_n * kappa_eff) + (-I * Lsep) / (Ar_n * kappa_eff_sep)
+        V_con = (2 * R * T * (1 - t_plus) * (1 + 1.2383) * np.log((1000 + yep_new[0]) / (1000 + yep_new[1]))) / F
+        phi_n = 0
+        phi_p = phi_n + vel
 
         # Compute "Exchange Current Density" per Electrode (Pos & Neg)
-        # i_0n = kn * F * (cen ** .5) * (yn_new ** .5) * ((cs_max_n - yn_new) ** .5)
-        # i_0p = kp * F * (cep ** .5) * (yp_new ** .5) * ((cs_max_p - yp_new) ** .5)
-
         i_0n = kn * F * (cen * yn_new * (cs_max_n - yn_new)) ** .5
         i_0p = kp * F * (cep * yp_new * (cs_max_p - yp_new)) ** .5
 
+        # Kappa (pos & Neg)
+        k_n = Jn / (2 * as_n * i_0n)
+        k_p = Jp / (2 * as_p * i_0p)
+
         # Compute Electrode "Overpotentials"
-        eta_n = ((2 * R * T) / F) * asinh((Jn * F) / (2 * i_0n))
-        eta_p = ((2 * R * T) / F) * asinh((Jp * F) / (2 * i_0p))
+        eta_n = (R*T*np.log(k_n + (k_n**2+1)**0.5))/(F*0.5)
+        eta_p = (R*T*np.log(k_p + (k_p**2+1)**0.5))/(F*0.5)
 
         # Record Stoich Ratio (SOC can be computed from this)
         theta_n = yn_new / cs_max_n
         theta_p = yp_new / cs_max_p
 
         theta = [theta_n, theta_p]   # Stoichiometry Ratio Coefficent
-
         soc_new = self.compute_SOC(theta_n, theta_p)
+
+        eata = eta_p - eta_n
 
         U_n = self.OCV_Anode(theta_n)
         U_p = self.OCV_Cathod(theta_p)
-        V_term = U_p - U_n + eta_p - eta_n
+
+        # V_term = U_p - U_n + eta_p - eta_n
+        V_term = (U_p - U_n) + eata + vel - Rf * I / (Ar_n * Ln * as_n)  # terminal voltage
+        R_film = -Rf * I / (Ar_n * Ln * as_n)
 
         return [states, outputs, soc_new, V_term, theta]
 
 
 if __name__ == "__main__":
 
-    SPM = SingleParticleModel()
+    SPM = SingleParticleModel_w_Electrolyte()
 
-    t_stop = 1300
+    t_stop = 3600
     V_list = np.zeros(t_stop)
     I_list = np.zeros(t_stop)
     SOC_list = np.zeros(t_stop)
     time_list = np.zeros(t_stop)
 
-    cur_val = -1
+    cur_val = 25
     states_0 = None
-    soc_0 = 0
+    soc_0 = 1
 
     for k in range(0, t_stop):
 
