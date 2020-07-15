@@ -1,4 +1,4 @@
-from SPMBatteryParams import *
+from SPMeBatteryParams import *
 import numpy as np
 import matplotlib.pyplot as plt
 from math import asinh, tanh
