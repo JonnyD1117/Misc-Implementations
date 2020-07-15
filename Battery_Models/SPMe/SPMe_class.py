@@ -50,38 +50,6 @@ class SingleParticleModel_w_Electrolyte:
         self.C_dn = self.Cn
         self.D_dn = self.Dn
 
-
-        # electrolyte  concentration (boundary)
-        # epsi_sep=1;
-        # epsi_e=0.3;
-        # epsi_n=epsi_e
-        # gamak=(1-t_plus)/(F*Ar_n);
-        #
-        #
-        #
-        # a_p0 =  -(epsi_n^(3/2) + 4*epsi_sep^(3/2))/(80000*De*epsi_n^(3/2)*epsi_sep^(3/2));
-        # b_p0 = (epsi_n^2*epsi_sep + 24*epsi_n^3 + 320*epsi_sep^3 + 160*epsi_n^(3/2)*epsi_sep^(3/2))/(19200000000*(4*De*epsi_n^(1/2)*epsi_sep^3 + De*epsi_n^2*epsi_sep^(3/2)));
-        #
-        # a_n0 =  (epsi_n^(3/2) + 4*epsi_sep^(3/2))/(80000*De*epsi_n^(3/2)*epsi_sep^(3/2));
-        # b_n0 = (epsi_n^2*epsi_sep + 24*epsi_n^3 + 320*epsi_sep^3 + 160*epsi_n^(3/2)*epsi_sep^(3/2))/(19200000000*(4*De*epsi_n^(1/2)*epsi_sep^3 + De*epsi_n^2*epsi_sep^(3/2)));
-        #
-        # Aep=[-1/b_p0  0 ;0 -1/b_n0];
-        # Bep=gamak*[1;1];
-        # Cep=[a_p0/b_p0  0; 0 a_n0/b_n0];
-        # Dep=[0];
-        #
-        # [n,m]=size(Aep);
-        # Ae_dp=eye(n)+Aep*Ts;
-        # Be_dp=Bep*Ts;
-        # ae_p=Ae_dp;
-        # be_p=Be_dp;
-        # ce_p=Cep;
-        # de_p=Dep;
-        # Ce_np(:,1)=[0; 0 ];
-
-
-
-
         # Model Initialization
     @staticmethod
     def OCV_Anode(theta):
@@ -215,17 +183,6 @@ class SingleParticleModel_w_Electrolyte:
         step function runs one iteration of the model given the input current and returns output states and quantities
         States: dict(), I_input: scalar, state_of_charge: scalar
         """
-        # Create Local Copy of Discrete SS Matrices for Ease of notation when writing Eqns.
-        A_dp = self.A_dp
-        B_dp = self.B_dp
-        C_dp = self.C_dp
-        D_dp = self.D_dp
-
-        A_dn = self.A_dn
-        B_dn = self.B_dn
-        C_dn = self.C_dn
-        D_dn = self.D_dn
-
         if full_sim is True:
             I = I_input
             soc = state_of_charge
@@ -258,6 +215,45 @@ class SingleParticleModel_w_Electrolyte:
             # ELSE use given states information to propagate model forward in time
             xn_old, xp_old = states["xn"], states["xp"]
             outputs = {"yn": None, "yp": None}
+
+        # Create Local Copy of Discrete SS Matrices for Ease of notation when writing Eqns.
+        A_dp = self.A_dp
+        B_dp = self.B_dp
+        C_dp = self.C_dp
+        D_dp = self.D_dp
+
+        A_dn = self.A_dn
+        B_dn = self.B_dn
+        C_dn = self.C_dn
+        D_dn = self.D_dn
+
+        # electrolyte  concentration (boundary)
+        a_p0 = -(epsi_n ** (3 / 2) + 4 * epsi_sep ** (3 / 2)) / (80000 * De * epsi_n ** (3 / 2) * epsi_sep ** (3 / 2))
+        b_p0 = (epsi_n ** 2 * epsi_sep + 24 * epsi_n ** 3 + 320 * epsi_sep ** 3 + 160 * epsi_n ** (3 / 2) * epsi_sep ** (3 / 2)) / (19200000000 * (4 * De * epsi_n ** (1 / 2) * epsi_sep ** 3 + De * epsi_n ** 2 * epsi_sep ** (3 / 2)))
+
+        a_n0 = (epsi_n ** (3 / 2) + 4 * epsi_sep ** (3 / 2)) / (80000 * De * epsi_n ** (3 / 2) * epsi_sep ** (3 / 2))
+        b_n0 = (epsi_n ** 2 * epsi_sep + 24 * epsi_n ** 3 + 320 * epsi_sep ** 3 + 160 * epsi_n ** (3 / 2) * epsi_sep ** (3 / 2)) / (19200000000 * (4 * De * epsi_n ** (1 / 2) * epsi_sep ** 3 + De * epsi_n ** 2 * epsi_sep ** (3 / 2)))
+
+        Aep = np.array([[-1 / b_p0, 0], [0, -1 / b_n0]])
+        Bep = gamak * np.array([[1], [1]])
+        Cep = np.array([[a_p0 / b_p0, 0], [0, a_n0 / b_n0]])
+        Dep = np.array([0])
+
+        [n, m] = np.shape(Aep)
+        Ae_dp = np.eye(n) + Aep * self.dt
+        Be_dp = Bep * self.dt
+        Ce_dp = Cep
+        De_dp = Dep
+
+        Ce_np(:, 1)=[0; 0];
+        yep(:, k)=ce_p(:,:, k)*Ce_np(:, k);
+        Ce_np(:, k + 1)=ae_p(:,:, k)*Ce_np(:, k)+be_p * I(k);
+
+
+
+
+
+
 
         # Molar Current Flux Density (Assumed UNIFORM for SPM)
         Jn = I / Vn

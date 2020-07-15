@@ -69,3 +69,8 @@ cen = 1000
 rfa_n = 1 / (F * as_n * Rn ** 5)
 rfa_p = 1 / (F * as_p * Rp ** 5)
 
+epsi_sep = 1
+epsi_e = 0.3
+epsi_n = epsi_e
+gamak = (1-t_plus)/(F*Ar_n)
+
