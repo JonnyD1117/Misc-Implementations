@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 from math import asinh, tanh
 
 
-class SingleParticleModel:
+class SingleParticleModel_w_Electrolyte:
     def __init__(self, timestep=1, sim_duration=1300, ):
         # Simulation Settings
         self.dt = timestep
@@ -49,6 +49,38 @@ class SingleParticleModel:
         self.B_dn = self.Bn * Ts
         self.C_dn = self.Cn
         self.D_dn = self.Dn
+
+
+        # electrolyte  concentration (boundary)
+        # epsi_sep=1;
+        # epsi_e=0.3;
+        # epsi_n=epsi_e
+        # gamak=(1-t_plus)/(F*Ar_n);
+        #
+        #
+        #
+        # a_p0 =  -(epsi_n^(3/2) + 4*epsi_sep^(3/2))/(80000*De*epsi_n^(3/2)*epsi_sep^(3/2));
+        # b_p0 = (epsi_n^2*epsi_sep + 24*epsi_n^3 + 320*epsi_sep^3 + 160*epsi_n^(3/2)*epsi_sep^(3/2))/(19200000000*(4*De*epsi_n^(1/2)*epsi_sep^3 + De*epsi_n^2*epsi_sep^(3/2)));
+        #
+        # a_n0 =  (epsi_n^(3/2) + 4*epsi_sep^(3/2))/(80000*De*epsi_n^(3/2)*epsi_sep^(3/2));
+        # b_n0 = (epsi_n^2*epsi_sep + 24*epsi_n^3 + 320*epsi_sep^3 + 160*epsi_n^(3/2)*epsi_sep^(3/2))/(19200000000*(4*De*epsi_n^(1/2)*epsi_sep^3 + De*epsi_n^2*epsi_sep^(3/2)));
+        #
+        # Aep=[-1/b_p0  0 ;0 -1/b_n0];
+        # Bep=gamak*[1;1];
+        # Cep=[a_p0/b_p0  0; 0 a_n0/b_n0];
+        # Dep=[0];
+        #
+        # [n,m]=size(Aep);
+        # Ae_dp=eye(n)+Aep*Ts;
+        # Be_dp=Bep*Ts;
+        # ae_p=Ae_dp;
+        # be_p=Be_dp;
+        # ce_p=Cep;
+        # de_p=Dep;
+        # Ce_np(:,1)=[0; 0 ];
+
+
+
 
         # Model Initialization
     @staticmethod

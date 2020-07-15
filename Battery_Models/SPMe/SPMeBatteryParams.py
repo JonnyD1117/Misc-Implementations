@@ -7,7 +7,8 @@ epsilon_sp = 0.50     # average positive active volume fraction
 epsilon_e_n = 0.3     # Liquid [electrolyte] volume fraction (pos & neg)
 epsilon_e_p = 0.3
 
-F = 96485.3329        # Faraday constant
+# F = 96485.3329        # Faraday constant
+F = 96487        # Faraday constant
 Rn = 10e-6            # Active particle radius (pose & neg)
 Rp = 10e-6
 
@@ -23,7 +24,7 @@ Lsep = 25e-6          # Separator Thickness
 Lc = Ln+Lp+Lsep       # Total Cell Thickness
 
 Ds_n = 3.9e-14        # Solid phase diffusion coefficient (pos & neg)
-Ds_p = 1e-13*0.5
+Ds_p = 1e-13
 De = 2.7877e-10       # Electrolyte Diffusion Coefficient
 
 kn = 1e-5/F           # Rate constant of exchange current density (Reaction Rate) [Pos & neg]
