@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 from math import asinh, tanh
 
 
-class SingleParticleModel_w_Electrolyte:
+class SingleParticleModelElectrolyte:
     def __init__(self, timestep=1, sim_duration=3600):
         # Simulation Settings
         self.dt = timestep
@@ -25,8 +25,8 @@ class SingleParticleModel_w_Electrolyte:
         # Model Parameters & Variables
         ###################################################################
         # Positive electrode three-state state space model for the particle
-        self.Ap = 1 * np.array([[0, 1, 0], [0, 0, 1], [0, -(3465 * (Ds_p ** 2) / Rp ** 4), - (189 * Ds_p / Rp ** 2)]])
-        self.Bp = np.array([[0], [0], [1]])
+        self.Ap = np.array([[0, 1, 0], [0, 0, 1], [0, -(3465 * (Ds_p ** 2) / Rp ** 4), - (189 * Ds_p / Rp ** 2)]])
+        self.Bp = np.array([[0], [0], [-1]])
         self.Cp = rfa_p * np.array([[10395 * Ds_p ** 2, 1260 * Ds_p * Rp ** 2, 21 * Rp ** 4]])
         self.Dp = np.array([0])
 
@@ -62,13 +62,12 @@ class SingleParticleModel_w_Electrolyte:
         self.Cep = np.array([[a_p0 / b_p0, 0], [0, a_n0 / b_n0]])
         self.Dep = np.array([0])
 
-        [n, m] = np.shape(self.Aep)
-        self.Ae_dp = np.eye(n) + self.Aep * Ts
-        self.Be_dp = self.Bep * self.dt
+        [n_elec, m] = np.shape(self.Aep)
+        self.Ae_dp = np.eye(n_elec) + self.Aep * Ts
+        self.Be_dp = self.Bep * Ts
         self.Ce_dp = self.Cep
         self.De_dp = self.Dep
 
-        # Model Initialization
     @staticmethod
     def OCV_Anode(theta):
         # DUALFOIL: MCMB 2528 graphite(Bellcore) 0.01 < x < 0.9
@@ -148,21 +147,24 @@ class SingleParticleModel_w_Electrolyte:
         :return: [Terminal Voltage (time series), SOC (time Series) Input Current Profile (time series) ]
         """
         Kup = self.num_steps
-
         # Populate State Variables with Initial Condition
         xn = np.zeros([3, Kup + 1])         # (Pos & neg) "states"
         xp = np.zeros([3, Kup + 1])
+        xe = np.zeros([2, Kup + 1])
+
         yn = np.zeros(Kup)                  # (Pos & neg) "outputs"
         yp = np.zeros(Kup)
+        yep = np.zeros([2, Kup])
+
         theta_n = np.zeros(Kup)             # (pos & neg) Stoichiometry Ratio
         theta_p = np.zeros(Kup)
         V_term = np.zeros(Kup)              # Terminal Voltage
+
         time = np.zeros(Kup)
         input_cur_prof = np.zeros(Kup)
         soc_list = np.zeros(Kup)
 
         # Set Initial Simulation (Step0) Parameters/Inputs
-
         if CC is True and I_input is None:
             # When CC is True and No value is supplied (assumed) input = default current value
             input_current = self.default_current*np.ones(Kup)
@@ -180,21 +182,18 @@ class SingleParticleModel_w_Electrolyte:
         # Main Simulation Loop
         for k in range(0, Kup):
             # Perform one iteration of simulation using "step" method
-
             states, outputs, soc_new, V_out, theta = self.step(input_state, input_current[k], init_SOC, full_sim=True)
 
-            print("NEW soc", soc_new[0].item())
-
             # Record Desired values for post-simulation plotting/analysis
-            xn[:, [k]], xp[:, [k]], theta_n[k], theta_p[k] = states["xn"], states["xp"], theta[0].item(), theta[1].item()
-            yn[[k]], yp[[k]] = outputs["yn"], outputs["yp"]
+            xn[:, [k]], xp[:, [k]], xe[:, [k]], theta_n[k], theta_p[k] = states["xn"], states["xp"], states["xe"], theta[0].item(), theta[1].item()
+            yn[[k]], yp[[k]], yep[:, [k]] = outputs["yn"], outputs["yp"], outputs["yep"]
 
             V_term[k], time[k], input_cur_prof[k], soc_list[k] = V_out.item(), self.dt * k, input_current[k], soc_new[0].item()
 
             # Update "step"s inputs to continue and update the simulation
             input_state, init_SOC = states, soc_new
 
-        return [xn, xp, yn, yp, theta_n, theta_p, V_term, time, input_cur_prof, soc_list]
+        return [xn, xp, xe, yn, yp, yep, theta_n, theta_p, V_term, time, input_cur_prof, soc_list]
 
     def step(self, states=None, I_input=None, state_of_charge=None, full_sim=False):
         """
@@ -217,10 +216,10 @@ class SingleParticleModel_w_Electrolyte:
         Ce_dp = self.Ce_dp
         De_dp = self.De_dp
 
+        # If FULL SIM is set True: Shortciruit SIM "I" & "SOC" values into step model (Does not Check for None inputs or default values)
         if full_sim is True:
             I = I_input
             soc = state_of_charge
-
         else:
             # Initialize Input Current
             if I_input is None:
@@ -270,9 +269,9 @@ class SingleParticleModel_w_Electrolyte:
         states["xn"], states["xp"], states["xe"] = xn_new, xp_new, xe_new
 
         # Electrolyte Dynamics
-        vel = (-I * (0.5 * Lp + 0.5 * Ln) / (Ar_n * kappa_eff) + (-I * Lsep) / (Ar_n * kappa_eff_sep) + (2 * R * T * (1 - t_plus) * (1 + 1.2383) * np.log((1000 + yep_new[0]) / (1000 + yep_new[1]))) / F)  # yep(1, k) = positive boundary;
+        vel = (-I * (0.5 * Lp + 0.5 * Ln) / (Ar_n * kappa_eff) + (-I * Lsep) / (Ar_n * kappa_eff_sep) + (2 * R * T * (1 - t_plus) * (1 + 1.2383) * np.log((1000 + yep_new[0].item()) / (1000 + yep_new[1].item()))) / F)  # yep(1, k) = positive boundary;
         R_e = -I * (0.5 * Lp + 0.5 * Ln) / (Ar_n * kappa_eff) + (-I * Lsep) / (Ar_n * kappa_eff_sep)
-        V_con = (2 * R * T * (1 - t_plus) * (1 + 1.2383) * np.log((1000 + yep_new[0]) / (1000 + yep_new[1]))) / F
+        V_con = (2 * R * T * (1 - t_plus) * (1 + 1.2383) * np.log((1000 + yep_new[0].item()) / (1000 + yep_new[1].item()))) / F
         phi_n = 0
         phi_p = phi_n + vel
 
@@ -285,8 +284,8 @@ class SingleParticleModel_w_Electrolyte:
         k_p = Jp / (2 * as_p * i_0p)
 
         # Compute Electrode "Overpotentials"
-        eta_n = (R*T*np.log(k_n + (k_n**2+1)**0.5))/(F*0.5)
-        eta_p = (R*T*np.log(k_p + (k_p**2+1)**0.5))/(F*0.5)
+        eta_n = (R*T*np.log(k_n + (k_n**2 + 1)**0.5))/(F*0.5)
+        eta_p = (R*T*np.log(k_p + (k_p**2 + 1)**0.5))/(F*0.5)
 
         # Record Stoich Ratio (SOC can be computed from this)
         theta_n = yn_new / cs_max_n
@@ -309,70 +308,64 @@ class SingleParticleModel_w_Electrolyte:
 
 if __name__ == "__main__":
 
-    SPM = SingleParticleModel_w_Electrolyte()
+    SPMe = SingleParticleModelElectrolyte()
 
-    t_stop = 3600
-    V_list = np.zeros(t_stop)
-    I_list = np.zeros(t_stop)
-    SOC_list = np.zeros(t_stop)
-    time_list = np.zeros(t_stop)
+    # t_stop = 3600
+    # V_list = np.zeros(t_stop)
+    # I_list = np.zeros(t_stop)
+    # SOC_list = np.zeros(t_stop)
+    # time_list = np.zeros(t_stop)
+    #
+    # cur_val = 25
+    # states_0 = None
+    # soc_0 = 1
+    #
+    # for k in range(0, t_stop):
+    #
+    #     step_output = SPM.step(states=states_0, I_input=cur_val, state_of_charge=soc_0, full_sim=False)
+    #
+    #     [states, outputs, soc_new, V_term, theta] = step_output
+    #
+    #     states_0 = states
+    #     soc_0 = soc_new
+    #
+    #     V_list[k] = V_term
+    #     I_list[k] = cur_val
+    #     SOC_list[k] = soc_new[0]
+    #     time_list[k] = k
+    #
+    # plt.figure(0)
+    # plt.plot(time_list, V_list)
+    # plt.title("Time vs Term. Voltage")
+    # plt.figure(1)
+    # plt.plot(time_list, SOC_list)
+    # plt.title("Time vs SOC")
+    # plt.show()
 
-    cur_val = 25
-    states_0 = None
-    soc_0 = 1
-
-    for k in range(0, t_stop):
-
-        step_output = SPM.step(states=states_0, I_input=cur_val, state_of_charge=soc_0, full_sim=False)
-
-        [states, outputs, soc_new, V_term, theta] = step_output
-
-        states_0 = states
-        soc_0 = soc_new
-
-        V_list[k] = V_term
-        I_list[k] = cur_val
-        SOC_list[k] = soc_new[0]
-        time_list[k] = k
+    [xn, xp, xe, yn, yp, yep, theta_n, theta_p, V_term, time, current, soc] = SPMe.sim(CC=True, I_input=1, init_SOC=1)
 
     plt.figure(0)
-    plt.plot(time_list, V_list)
-    plt.title("Time vs Term. Voltage")
+    plt.plot(time, yn)
+    plt.plot(time, yp)
+    plt.ylabel("Surface Concentration")
+    plt.xlabel("Time [seconds]")
+    plt.title("Time vs Surface Concentration")
+
     plt.figure(1)
-    plt.plot(time_list, SOC_list)
-    plt.title("Time vs SOC")
+    plt.plot(time, V_term)
+    plt.ylabel("Terminal Voltage")
+    plt.xlabel("Time [seconds}")
+    plt.title("Time vs Terminal Voltage")
+
+    plt.figure(2)
+    plt.plot(time, current)
+    plt.ylabel("Input Current")
+    plt.xlabel("Time [seconds}")
+    plt.title("Time vs Input Current")
+
+    plt.figure(3)
+    plt.plot(time, soc)
+    plt.ylabel("State of Charge")
+    plt.xlabel("Time (seconds)")
+    plt.title("Time vs State of Charge")
     plt.show()
-
-
-
-
-
-    # [xn, xp, yn, yp, theta_n, theta_p, V_term, time, current, soc] = SPM.sim(CC=True, I_input=-25, init_SOC=.5)
-
-
-    # plt.figure(0)
-    # plt.plot(time, yn)
-    # plt.plot(time, yp)
-    # plt.ylabel("Surface Concentration")
-    # plt.xlabel("Time [seconds]")
-    # plt.title("Time vs Surface Concentration")
-    #
-    # plt.figure(1)
-    # plt.plot(time, V_term)
-    # plt.ylabel("Terminal Voltage")
-    # plt.xlabel("Time [seconds}")
-    # plt.title("Time vs Terminal Voltage")
-    #
-    # plt.figure(2)
-    # plt.plot(time, current)
-    # plt.ylabel("Input Current")
-    # plt.xlabel("Time [seconds}")
-    # plt.title("Time vs Input Current")
-    #
-    # plt.figure(3)
-    # plt.plot(time, soc)
-    # plt.ylabel("State of Charge")
-    # plt.xlabel("Time (seconds)")
-    # plt.title("Time vs State of Charge")
-    # plt.show()
-    #
