@@ -14,7 +14,7 @@ class SingleParticleModelElectrolyte:
         Ts = self.dt
 
         # Default Input "Current" Settings
-        self.default_current = -25.67*3              # Base Current Draw
+        self.default_current = -25.67            # Base Current Draw
 
         # self.C_rate = C_Rate
         self.C_rate_list = {"1C": 3601, "2C": 1712, "3C": 1083, "Qingzhi_C": 1300}
@@ -51,11 +51,11 @@ class SingleParticleModelElectrolyte:
         self.D_dn = self.Dn
 
         # electrolyte  concentration (boundary)
-        a_p0 = -(epsi_n ** (3 / 2) + 4 * epsi_sep ** (3 / 2)) / (80000 * De * epsi_n ** (3 / 2) * epsi_sep ** (3 / 2))
-        b_p0 = (epsi_n ** 2 * epsi_sep + 24 * epsi_n ** 3 + 320 * epsi_sep ** 3 + 160 * epsi_n ** (3 / 2) * epsi_sep ** (3 / 2)) / (19200000000 * (4 * De * epsi_n ** (1 / 2) * epsi_sep ** 3 + De * epsi_n ** 2 * epsi_sep ** (3 / 2)))
+        a_p0 = -(epsi_n ** (3 / 2) + 4 * epsi_sep ** (3 / 2)) / (80000 * De_p * epsi_n ** (3 / 2) * epsi_sep ** (3 / 2))
+        b_p0 = (epsi_n ** 2 * epsi_sep + 24 * epsi_n ** 3 + 320 * epsi_sep ** 3 + 160 * epsi_n ** (3 / 2) * epsi_sep ** (3 / 2)) / (19200000000 * (4 * De_p * epsi_n ** (1 / 2) * epsi_sep ** 3 + De_p * epsi_n ** 2 * epsi_sep ** (3 / 2)))
 
         a_n0 = (epsi_n ** (3 / 2) + 4 * epsi_sep ** (3 / 2)) / (80000 * De * epsi_n ** (3 / 2) * epsi_sep ** (3 / 2))
-        b_n0 = (epsi_n ** 2 * epsi_sep + 24 * epsi_n ** 3 + 320 * epsi_sep ** 3 + 160 * epsi_n ** (3 / 2) * epsi_sep ** (3 / 2)) / (19200000000 * (4 * De * epsi_n ** (1 / 2) * epsi_sep ** 3 + De * epsi_n ** 2 * epsi_sep ** (3 / 2)))
+        b_n0 = (epsi_n ** 2 * epsi_sep + 24 * epsi_n ** 3 + 320 * epsi_sep ** 3 + 160 * epsi_n ** (3 / 2) * epsi_sep ** (3 / 2)) / (19200000000 * (4 * De_n * epsi_n ** (1 / 2) * epsi_sep ** 3 + De_n * epsi_n ** 2 * epsi_sep ** (3 / 2)))
 
         self.Aep = np.array([[-1 / b_p0, 0], [0, -1 / b_n0]])
         self.Bep = gamak * np.array([[1], [1]])
@@ -113,10 +113,6 @@ class SingleParticleModelElectrolyte:
         """
         SOC_n = ((theta_n - stoi_n0)/(stoi_n100 - stoi_n0))
         SOC_p = ((theta_p - stoi_p0)/(stoi_p100 - stoi_p0))
-
-        # if SOC_n >= 1:
-        #     SOC_n = 1
-        #     SOC_p = 1
 
         return [SOC_n, SOC_p]
 
