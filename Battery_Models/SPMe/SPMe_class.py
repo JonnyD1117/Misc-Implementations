@@ -71,26 +71,18 @@ class SingleParticleModelElectrolyte:
     @staticmethod
     def OCV_Anode(theta):
         # DUALFOIL: MCMB 2528 graphite(Bellcore) 0.01 < x < 0.9
-        Uref = 0.194 + 1.5 * np.exp(-120.0 * theta)
-        + 0.0351 * tanh((theta - 0.286) / 0.083)
-        - 0.0045 * tanh((theta - 0.849) / 0.119)
-        - 0.035 * tanh((theta - 0.9233) / 0.05)
-        - 0.0147 * tanh((theta - 0.5) / 0.034)
-        - 0.102 * tanh((theta - 0.194) / 0.142)
-        - 0.022 * tanh((theta - 0.9) / 0.0164)
-        - 0.011 * tanh((theta - 0.124) / 0.0226)
-        + 0.0155 * tanh((theta - 0.105) / 0.029)
+        Uref = 0.194 + 1.5 * np.exp(-120.0 * theta) + 0.0351 * tanh((theta - 0.286) / 0.083) - 0.0045 * tanh(
+            (theta - 0.849) / 0.119) - 0.035 * tanh((theta - 0.9233) / 0.05) - 0.0147 * tanh(
+            (theta - 0.5) / 0.034) - 0.102 * tanh((theta - 0.194) / 0.142) - 0.022 * tanh(
+            (theta - 0.9) / 0.0164) - 0.011 * tanh((theta - 0.124) / 0.0226) + 0.0155 * tanh((theta - 0.105) / 0.029)
 
         return Uref
 
     @staticmethod
     def OCV_Cathod(theta):
-        Uref = 2.16216 + 0.07645 * tanh(30.834 - 54.4806 * theta)
-        + 2.1581 * tanh(52.294 - 50.294 * theta)
-        - 0.14169 * tanh(11.0923 - 19.8543 * theta)
-        + 0.2051 * tanh(1.4684 - 5.4888 * theta)
-        + 0.2531 * tanh((-theta + 0.56478) / 0.1316)
-        - 0.02167 * tanh((theta - 0.525) / 0.006)
+        Uref = 2.16216 + 0.07645 * tanh(30.834 - 54.4806 * theta) + 2.1581 * tanh(52.294 - 50.294 * theta) - 0.14169 * \
+               tanh(11.0923 - 19.8543 * theta) + 0.2051 * tanh(1.4684 - 5.4888 * theta) + 0.2531 * tanh(\
+            (-theta + 0.56478)/ 0.1316) - 0.02167 * tanh((theta - 0.525) / 0.006)
 
         return Uref
 
@@ -186,6 +178,9 @@ class SingleParticleModelElectrolyte:
 
             V_term[k], time[k], input_cur_prof[k], soc_list[k] = V_out.item(), self.dt * k, input_current[k], soc_new[0].item()
 
+            if V_term[k] <= 2.75:
+                break
+
             # Update "step"s inputs to continue and update the simulation
             input_state, init_SOC = states, soc_new
 
@@ -196,6 +191,11 @@ class SingleParticleModelElectrolyte:
         step function runs one iteration of the model given the input current and returns output states and quantities
         States: dict(), I_input: scalar, state_of_charge: scalar
         """
+
+        init_states = states
+        init_current = I_input
+        init_soc = state_of_charge
+
         # Create Local Copy of Discrete SS Matrices for Ease of notation when writing Eqns.
         A_dp = self.A_dp
         B_dp = self.B_dp
@@ -290,15 +290,18 @@ class SingleParticleModelElectrolyte:
         theta = [theta_n, theta_p]   # Stoichiometry Ratio Coefficent
         soc_new = self.compute_SOC(theta_n, theta_p)
 
-        eata = eta_p - eta_n
 
         U_n = self.OCV_Anode(theta_n)
         U_p = self.OCV_Cathod(theta_p)
 
         # V_term = U_p - U_n + eta_p - eta_n
-        V_term = (U_p - U_n) + eata + vel - Rf * I / (Ar_n * Ln * as_n)  # terminal voltage
+        V_term = (U_p - U_n) + (eta_p - eta_n) + vel - Rf * I / (Ar_n * Ln * as_n)  # terminal voltage
         R_film = -Rf * I / (Ar_n * Ln * as_n)
 
+        # if V_term <= 2.75:
+        #     return [init_states, outputs, soc_new, V_term, theta]
+        # else:
+        #     return [states, outputs, soc_new, V_term, theta]
         return [states, outputs, soc_new, V_term, theta]
 
 
@@ -338,7 +341,7 @@ if __name__ == "__main__":
     # plt.title("Time vs SOC")
     # plt.show()
 
-    [xn, xp, xe, yn, yp, yep, theta_n, theta_p, V_term, time, current, soc] = SPMe.sim(CC=True, I_input=1, init_SOC=1)
+    [xn, xp, xe, yn, yp, yep, theta_n, theta_p, V_term, time, current, soc] = SPMe.sim(CC=True, I_input=25.67, init_SOC=.5)
 
     plt.figure(0)
     plt.plot(time, yn)
@@ -365,3 +368,5 @@ if __name__ == "__main__":
     plt.xlabel("Time (seconds)")
     plt.title("Time vs State of Charge")
     plt.show()
+
+

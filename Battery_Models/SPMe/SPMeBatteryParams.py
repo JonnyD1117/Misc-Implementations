@@ -77,6 +77,6 @@ epsi_n = epsi_e
 gamak = (1-t_plus)/(F*Ar_n)
 
 kappa = 1.1046
-kappa_eff = 1.1046*(0.3**1.5)
-kappa_eff_sep = 1.1046*(1**1.5)
+kappa_eff = kappa*(epsi_e**1.5)
+kappa_eff_sep = kappa*(epsi_sep**1.5)
 
