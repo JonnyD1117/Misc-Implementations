@@ -14,7 +14,7 @@ class SingleParticleModelElectrolyte:
         Ts = self.dt
 
         # Default Input "Current" Settings
-        self.default_current = -25.67            # Base Current Draw
+        self.default_current = 25.67            # Base Current Draw
 
         # self.C_rate = C_Rate
         self.C_rate_list = {"1C": 3601, "2C": 1712, "3C": 1083, "Qingzhi_C": 1300}
@@ -81,8 +81,8 @@ class SingleParticleModelElectrolyte:
     @staticmethod
     def OCV_Cathod(theta):
         Uref = 2.16216 + 0.07645 * tanh(30.834 - 54.4806 * theta) + 2.1581 * tanh(52.294 - 50.294 * theta) - 0.14169 * \
-               tanh(11.0923 - 19.8543 * theta) + 0.2051 * tanh(1.4684 - 5.4888 * theta) + 0.2531 * tanh(\
-            (-theta + 0.56478)/ 0.1316) - 0.02167 * tanh((theta - 0.525) / 0.006)
+               tanh(11.0923 - 19.8543 * theta) + 0.2051 * tanh(1.4684 - 5.4888 * theta) + 0.2531 * tanh( \
+            (-theta + 0.56478) / 0.1316) - 0.02167 * tanh((theta - 0.525) / 0.006)
 
         return Uref
 
@@ -109,32 +109,66 @@ class SingleParticleModelElectrolyte:
         return [SOC_n, SOC_p]
 
     @staticmethod
-    def plot_results():
-        """plt.figure(1)
-        plt.title("Terminal Voltage vs time")
-        plt.xlabel("Time [sec]")
-        plt.ylabel("Volts")
+    def plot_results( xn, xp, xe, yn, yp, yep, theta_n, theta_p, V_term, time, current, soc):
+        plt.figure(0)
+        plt.plot(time, yn)
+        plt.plot(time, yp)
+        plt.ylabel("Surface Concentration")
+        plt.xlabel("Time [seconds]")
+        plt.title("Time vs Surface Concentration")
+        #
+        plt.figure(1)
         plt.plot(time, V_term)
-
+        plt.ylabel("Terminal Voltage")
+        plt.xlabel("Time [seconds}")
+        plt.title("Time vs Terminal Voltage")
+        #
         plt.figure(2)
-        plt.title("Input Current vs time")
-        plt.xlabel("Time [sec]")
-        plt.ylabel("Current")
-        plt.plot(time, I)
+        plt.plot(time, current)
+        plt.ylabel("Input Current")
+        plt.xlabel("Time [seconds}")
+        plt.title("Time vs Input Current")
 
         plt.figure(3)
-        plt.title("SOC vs time")
-        plt.xlabel("Time [sec]")
-        plt.ylabel("State of Charg")
-        plt.plot(time, theta_n)
-        plt.show()"""
+        plt.plot(time, soc)
+        plt.ylabel("State of Charge")
+        plt.xlabel("Time (seconds)")
+        plt.title("Time vs State of Charge")
+        plt.show()
 
-    def sim(self, init_state=None, I_input=None, CC=True, init_SOC=None):
+    @staticmethod
+    def trim_array(sim_length, valid_length, xn, xp, xe, yn, yp, yep, theta_n, theta_p, V_term, time, input_cur_prof, soc_list):
+
+        if sim_length == valid_length:
+            return [xn, xp, xe, yn, yp, yep, theta_n, theta_p, V_term, time, input_cur_prof, soc_list]
+        else:
+
+            xn = xn[:valid_length]
+            xp = xp[:valid_length]
+            xe = xe[:valid_length]
+            yn =yn[ :valid_length]
+            yp = yp[: valid_length]
+            theta_n = theta_n[ :valid_length]
+            theta_p = theta_p[ :valid_length]
+            V_term = V_term[ :valid_length]
+            time = time[ :valid_length]
+            input_cur_prof = input_cur_prof[ :valid_length]
+            soc_list = soc_list[ :valid_length]
+
+            return [xn, xp, xe, yn, yp, yep, theta_n, theta_p, V_term, time, input_cur_prof, soc_list]
+
+
+
+
+
+
+
+    def sim(self, init_state=None, zero_init_I=True, I_input=None, CC=True, init_SOC=None, num_iter=3600, plot_results=False):
         """
         sim function runs complete solution given a timeseries current profile
         :return: [Terminal Voltage (time series), SOC (time Series) Input Current Profile (time series) ]
         """
-        Kup = self.num_steps
+        Kup = num_iter
         # Populate State Variables with Initial Condition
         xn = np.zeros([3, Kup + 1])         # (Pos & neg) "states"
         xp = np.zeros([3, Kup + 1])
@@ -169,6 +203,10 @@ class SingleParticleModelElectrolyte:
 
         # Main Simulation Loop
         for k in range(0, Kup):
+            if zero_init_I and k == 0:
+                input_current[0] = 0
+            else:
+                input_current = input_current
             # Perform one iteration of simulation using "step" method
             states, outputs, soc_new, V_out, theta = self.step(input_state, input_current[k], init_SOC, full_sim=True)
 
@@ -179,14 +217,24 @@ class SingleParticleModelElectrolyte:
             V_term[k], time[k], input_cur_prof[k], soc_list[k] = V_out.item(), self.dt * k, input_current[k], soc_new[0].item()
 
             if V_term[k] <= 2.75:
+                val_len = k
                 break
+
+            else:
+                val_len = num_iter
 
             # Update "step"s inputs to continue and update the simulation
             input_state, init_SOC = states, soc_new
 
+        xn, xp, xe, yn, yp, yep, theta_n, theta_p, V_term, time, input_cur_prof, soc_list = self.trim_array(num_iter, val_len, xn, xp, xe, yn, yp, yep, theta_n, theta_p, V_term, time, input_cur_prof, soc_list)
+
+        print("SOC List", np.shape(soc_list))
+        if plot_results:
+            self.plot_results(xn, xp, xe, yn, yp, yep, theta_n, theta_p, V_term, time, input_cur_prof, soc_list)
+
         return [xn, xp, xe, yn, yp, yep, theta_n, theta_p, V_term, time, input_cur_prof, soc_list]
 
-    def step(self, states=None, I_input=None, state_of_charge=None, full_sim=False):
+    def step(self, states=None, I_input=None, state_of_charge=None, full_sim=False, stop_sim=False):
         """
         step function runs one iteration of the model given the input current and returns output states and quantities
         States: dict(), I_input: scalar, state_of_charge: scalar
@@ -298,75 +346,56 @@ class SingleParticleModelElectrolyte:
         V_term = (U_p - U_n) + (eta_p - eta_n) + vel - Rf * I / (Ar_n * Ln * as_n)  # terminal voltage
         R_film = -Rf * I / (Ar_n * Ln * as_n)
 
-        # if V_term <= 2.75:
-        #     return [init_states, outputs, soc_new, V_term, theta]
-        # else:
-        #     return [states, outputs, soc_new, V_term, theta]
-        return [states, outputs, soc_new, V_term, theta]
+        if V_term <= 2.75:
+            return [init_states, outputs, soc_new, V_term, theta]
+        else:
+            return [states, outputs, soc_new, V_term, theta]
+        # return [states, outputs, soc_new, V_term, theta]
 
 
 if __name__ == "__main__":
 
     SPMe = SingleParticleModelElectrolyte()
 
-    # t_stop = 3600
-    # V_list = np.zeros(t_stop)
-    # I_list = np.zeros(t_stop)
-    # SOC_list = np.zeros(t_stop)
-    # time_list = np.zeros(t_stop)
+    """t_stop = 3600
+    V_list = np.zeros(t_stop)
+    I_list = np.zeros(t_stop)
+    SOC_list = np.zeros(t_stop)
+    time_list = np.zeros(t_stop)
     #
-    # cur_val = 25
-    # states_0 = None
-    # soc_0 = 1
+    cur_val = 25.67
+    states_0 = None
+    soc_0 = .5
     #
-    # for k in range(0, t_stop):
-    #
-    #     step_output = SPM.step(states=states_0, I_input=cur_val, state_of_charge=soc_0, full_sim=False)
-    #
-    #     [states, outputs, soc_new, V_term, theta] = step_output
-    #
-    #     states_0 = states
-    #     soc_0 = soc_new
-    #
-    #     V_list[k] = V_term
-    #     I_list[k] = cur_val
-    #     SOC_list[k] = soc_new[0]
-    #     time_list[k] = k
-    #
-    # plt.figure(0)
-    # plt.plot(time_list, V_list)
-    # plt.title("Time vs Term. Voltage")
-    # plt.figure(1)
-    # plt.plot(time_list, SOC_list)
-    # plt.title("Time vs SOC")
-    # plt.show()
+    for k in range(0, t_stop):
 
-    [xn, xp, xe, yn, yp, yep, theta_n, theta_p, V_term, time, current, soc] = SPMe.sim(CC=True, I_input=25.67, init_SOC=.5)
-
+        if k == 0:
+            cur_val = 0
+        else:
+            cur_val = 25.67
+    #
+        step_output = SPMe.step(states=states_0, I_input=cur_val, state_of_charge=soc_0, full_sim=True)
+    #
+        [states, outputs, soc_new, V_term, theta] = step_output
+    #
+        states_0 = states
+        soc_0 = soc_new
+    #
+        V_list[k] = V_term
+        I_list[k] = cur_val
+        SOC_list[k] = soc_new[0]
+        time_list[k] = k
+    #
     plt.figure(0)
-    plt.plot(time, yn)
-    plt.plot(time, yp)
-    plt.ylabel("Surface Concentration")
-    plt.xlabel("Time [seconds]")
-    plt.title("Time vs Surface Concentration")
-
+    plt.plot(time_list, V_list)
+    plt.title("Time vs Term. Voltage")
     plt.figure(1)
-    plt.plot(time, V_term)
-    plt.ylabel("Terminal Voltage")
-    plt.xlabel("Time [seconds}")
-    plt.title("Time vs Terminal Voltage")
+    plt.plot(time_list, SOC_list)
+    plt.title("Time vs SOC")
+    plt.show()"""
 
-    plt.figure(2)
-    plt.plot(time, current)
-    plt.ylabel("Input Current")
-    plt.xlabel("Time [seconds}")
-    plt.title("Time vs Input Current")
+    [xn, xp, xe, yn, yp, yep, theta_n, theta_p, V_term, time, current, soc] = SPMe.sim(CC=True, zero_init_I=True, I_input=25.67, init_SOC=.5, num_iter=3600, plot_results=True)
 
-    plt.figure(3)
-    plt.plot(time, soc)
-    plt.ylabel("State of Charge")
-    plt.xlabel("Time (seconds)")
-    plt.title("Time vs State of Charge")
-    plt.show()
+
 
 

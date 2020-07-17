@@ -4,38 +4,44 @@ from SPMeBatteryParams import *
 # from numpy import tanh, exp
 from math import tanh, exp
 
+v1 = np.zeros([1, 20])
+v2 = np.zeros([1, 20])
+v3 = np.zeros([1, 20])
+v4 = np.zeros([1, 20])
+v5 = np.zeros([1, 20])
+v6 = np.zeros([1, 20])
+v7 = np.zeros([1, 20])
+v8 = np.zeros([1, 20])
+v9 = np.zeros([1, 20])
+v10 = np.zeros([1, 20])
 
-def OCV_Anode(theta):
-    # DUALFOIL: MCMB 2528 graphite(Bellcore) 0.01 < x < 0.9
-    # Uref1 = 0.194 + 1.5 * exp(-120.0 * theta) + 0.0351 * tanh((theta - 0.286) / 0.083) - 0.0045 * tanh((theta - 0.849) / 0.119) - 0.035 * tanh((theta - 0.9233) / 0.05) - 0.0147 * tanh((theta - 0.5) / 0.034) - 0.102 * tanh((theta - 0.194) / 0.142) - 0.022 * tanh((theta - 0.9) / 0.0164) - 0.011 * tanh((theta - 0.124) / 0.0226) + 0.0155 * tanh((theta - 0.105) / 0.029)
-    Uref1 = 0.194 + 1.5 * np.exp(-120.0 * theta) + 0.0351 * tanh((theta - 0.286) / 0.083) - 0.0045 * tanh(
-        (theta - 0.849) / 0.119) - 0.035 * tanh((theta - 0.9233) / 0.05) - 0.0147 * tanh(
-        (theta - 0.5) / 0.034) - 0.102 * tanh((theta - 0.194) / 0.142) - 0.022 * tanh(
-        (theta - 0.9) / 0.0164) - 0.011 * tanh((theta - 0.124) / 0.0226) + 0.0155 * tanh((theta - 0.105) / 0.029)
-    Uref2 = 0.194 + 1.5 * exp(-120.0 * theta) + 0.0351 * tanh((theta - 0.286) / 0.083) - 0.0045 * tanh((theta - 0.849) / 0.119) - 0.035 * tanh((theta - 0.9233) / 0.05) - 0.0147 * tanh((theta - 0.5) / 0.034) - 0.102 * tanh((theta - 0.194) / 0.142) - 0.022 * tanh((theta - 0.9) / 0.0164) - 0.011 * tanh((theta - 0.124) / 0.0226) + 0.0155 * tanh((theta - 0.105) / 0.029)
+print("indiv v", np.shape(v1[0, :]))
+clip_val = 10
 
-    return [Uref1, Uref2]
-def compute_Stoich_coef(state_of_charge):
-    """
-    Compute Stoichiometry Coefficients (ratio of surf. Conc to max conc.) from SOC value via Interpolation
-    """
-    alpha = state_of_charge
+vect = np.array([v1[0, :], v2[0, :], v3[0, :], v4[0, :], v5[0, :], v6[0, :], v7[0, :], v8[0, :], v9[0, :], v10[0, :]])
 
-    stoi_n = (stoi_n100 - stoi_n0) * alpha + stoi_n0  # Negative Electrode Interpolant
-    stoi_p = stoi_p0 - (stoi_p0 - stoi_p100) * alpha  # Positive Electrode Interpolant
-    return [stoi_n, stoi_p]
+print("Vect Shape", np.shape(vect))
 
-# print(compute_Stoich_coef(1))
+# vect = np.zeros([10, 20])
+print(vect)
 
-x = np.arange(.442, .676, .001)
+thing = np.ones([10, 1])
+print(thing)
 
-print(x[1])
-print(len(x))
-print("---------------------")
+vect[:, 0] = thing[:, 0]
 
+print(vect)
 
 
-for i in range(0, len(x)):
-    val = x[i]
-    print(OCV_Anode(val))
 
+
+
+print("#####################################")
+print("#####################################")
+
+cut_off = 10
+
+[n, m] = np.shape(vect)
+vect = vect[:, :10]
+
+print(vect)
