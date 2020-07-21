@@ -1,7 +1,8 @@
 from SPMeBatteryParams import *
 import numpy as np
 import matplotlib.pyplot as plt
-from math import asinh, tanh
+from math import asinh, tanh, cosh
+import csv
 
 
 class SingleParticleModelElectrolyte:
@@ -12,6 +13,29 @@ class SingleParticleModelElectrolyte:
         self.time = np.arange(0, self.duration, self.dt)
         self.num_steps = len(self.time)
         Ts = self.dt
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        
 
         # Default Input "Current" Settings
         self.default_current = 25.67            # Base Current Draw
@@ -109,13 +133,40 @@ class SingleParticleModelElectrolyte:
         return [SOC_n, SOC_p]
 
     @staticmethod
-    def plot_results( xn, xp, xe, yn, yp, yep, theta_n, theta_p, V_term, time, current, soc):
+    def OCP_Slope_Cathode(theta):
+        docvp_dCsep = 0.07645 * (-54.4806 / cs_max_p) * ((1.0 / cosh(30.834 - 54.4806 * theta)) ** 2) \
+            + 2.1581 * (-50.294 / cs_max_p) * ((cosh(52.294 - 50.294 * theta)) ** (-2)) \
+            + 0.14169 * (19.854 / cs_max_p) * ((cosh(11.0923 - 19.8543 * theta)) ** (-2))\
+            - 0.2051 * (5.4888 / cs_max_p) * ((cosh(1.4684 - 5.4888 * theta)) ** (-2))\
+            - 0.2531 / 0.1316 / cs_max_p * ((cosh((-theta + 0.56478) / 0.1316)) ** (-2))\
+            - 0.02167 / 0.006 / cs_max_p * ((cosh((theta - 0.525) / 0.006)) ** (-2))
+
+        return docvp_dCsep
+
+    @staticmethod
+    def OCP_Slope_Anode(theta):
+        docvn_dCsen = -1.5 * (120.0 / cs_max_n) * np.exp(-120.0 * theta)\
+            + (0.0351 / (0.083 * cs_max_n)) * ((cosh((theta - 0.286) / 0.083)) ** (-2))\
+            - (0.0045 / (cs_max_n * 0.119)) * ((cosh((theta - 0.849) / 0.119)) ** (-2))\
+            - (0.035 / (cs_max_n * 0.05)) * ((cosh((theta - 0.9233) / 0.05)) ** (-2))\
+            - (0.0147 / (cs_max_n * 0.034)) * ((cosh((theta - 0.5) / 0.034)) ** (-2))\
+            - (0.102 / (cs_max_n * 0.142)) * ((cosh((theta - 0.194) / 0.142)) ** (-2))\
+            - (0.022 / (cs_max_n * 0.0164)) * ((cosh((theta - 0.9) / 0.0164)) ** (-2))\
+            - (0.011 / (cs_max_n * 0.0226)) * ((cosh((theta - 0.124) / 0.0226)) ** (-2))\
+            + (0.0155 / (cs_max_n * 0.029)) * ((cosh((theta - 0.105) / 0.029)) ** (-2))\
+
+        return docvn_dCsen
+
+    @staticmethod
+    def plot_results(xn, xp, xe, yn, yp, yep, theta_n, theta_p, docv_n, docv_p, V_term, time, current, soc):
+
+        """# plt.subplot(4, 1 ,1)
         plt.figure(0)
         plt.plot(time, yn)
         plt.plot(time, yp)
         plt.ylabel("Surface Concentration")
         plt.xlabel("Time [seconds]")
-        plt.title("Time vs Surface Concentration")
+        plt.title("Time vs Surface Concentration")"""
         #
         plt.figure(1)
         plt.plot(time, V_term)
@@ -134,10 +185,18 @@ class SingleParticleModelElectrolyte:
         plt.ylabel("State of Charge")
         plt.xlabel("Time (seconds)")
         plt.title("Time vs State of Charge")
+
+        """plt.figure(4)
+        plt.plot(time, docv_n, label="D_OCV_P")
+        plt.plot(time, docv_p, label="D_OCV_N")
+        plt.ylabel("OCV Slope")
+        plt.xlabel("Time (seconds)")
+        plt.title("Time vs OCV Slope")
+        plt.legend(loc="lower left")"""
         plt.show()
 
     @staticmethod
-    def trim_array(sim_length, valid_length, xn, xp, xe, yn, yp, yep, theta_n, theta_p, V_term, time, input_cur_prof, soc_list):
+    def trim_array(sim_length, valid_length, xn, xp, xe, yn, yp, yep, theta_n, theta_p, docv_n, docv_p, V_term, time, input_cur_prof, soc_list):
 
         if sim_length == valid_length:
             return [xn, xp, xe, yn, yp, yep, theta_n, theta_p, V_term, time, input_cur_prof, soc_list]
@@ -148,20 +207,16 @@ class SingleParticleModelElectrolyte:
             xe = xe[:valid_length]
             yn =yn[ :valid_length]
             yp = yp[: valid_length]
-            theta_n = theta_n[ :valid_length]
-            theta_p = theta_p[ :valid_length]
-            V_term = V_term[ :valid_length]
-            time = time[ :valid_length]
-            input_cur_prof = input_cur_prof[ :valid_length]
-            soc_list = soc_list[ :valid_length]
+            theta_n = theta_n[:valid_length]
+            theta_p = theta_p[:valid_length]
+            V_term = V_term[:valid_length]
+            time = time[:valid_length]
+            input_cur_prof = input_cur_prof[:valid_length]
+            soc_list = soc_list[:valid_length]
+            docv_n = docv_n[:valid_length]
+            docv_p = docv_p[:valid_length]
 
-            return [xn, xp, xe, yn, yp, yep, theta_n, theta_p, V_term, time, input_cur_prof, soc_list]
-
-
-
-
-
-
+            return [xn, xp, xe, yn, yp, yep, theta_n, theta_p, docv_n, docv_p, V_term, time, input_cur_prof, soc_list]
 
     def sim(self, init_state=None, zero_init_I=True, I_input=None, CC=True, init_SOC=None, num_iter=3600, plot_results=False):
         """
@@ -186,6 +241,9 @@ class SingleParticleModelElectrolyte:
         input_cur_prof = np.zeros(Kup)
         soc_list = np.zeros(Kup)
 
+        docv_dCse_n = np.zeros(Kup)  # (pos & neg) Stoichiometry Ratio
+        docv_dCse_p = np.zeros(Kup)
+
         # Set Initial Simulation (Step0) Parameters/Inputs
         if CC is True and I_input is None:
             # When CC is True and No value is supplied (assumed) input = default current value
@@ -208,11 +266,12 @@ class SingleParticleModelElectrolyte:
             else:
                 input_current = input_current
             # Perform one iteration of simulation using "step" method
-            states, outputs, soc_new, V_out, theta = self.step(input_state, input_current[k], init_SOC, full_sim=True)
+            states, outputs, soc_new, V_out, theta, docv_dCse = self.step(input_state, input_current[k], init_SOC, full_sim=True)
 
             # Record Desired values for post-simulation plotting/analysis
-            xn[:, [k]], xp[:, [k]], xe[:, [k]], theta_n[k], theta_p[k] = states["xn"], states["xp"], states["xe"], theta[0].item(), theta[1].item()
+            xn[:, [k]], xp[:, [k]], xe[:, [k]] = states["xn"], states["xp"], states["xe"]
             yn[[k]], yp[[k]], yep[:, [k]] = outputs["yn"], outputs["yp"], outputs["yep"]
+            theta_n[k], theta_p[k], docv_dCse_n[k], docv_dCse_p[k] = theta[0].item(), theta[1].item(), docv_dCse[0], docv_dCse[1]
 
             V_term[k], time[k], input_cur_prof[k], soc_list[k] = V_out.item(), self.dt * k, input_current[k], soc_new[0].item()
 
@@ -226,11 +285,10 @@ class SingleParticleModelElectrolyte:
             # Update "step"s inputs to continue and update the simulation
             input_state, init_SOC = states, soc_new
 
-        xn, xp, xe, yn, yp, yep, theta_n, theta_p, V_term, time, input_cur_prof, soc_list = self.trim_array(num_iter, val_len, xn, xp, xe, yn, yp, yep, theta_n, theta_p, V_term, time, input_cur_prof, soc_list)
+        xn, xp, xe, yn, yp, yep, theta_n, theta_p, docv_dCse_n, docv_dCse_p, V_term, time, input_cur_prof, soc_list = self.trim_array(num_iter, val_len, xn, xp, xe, yn, yp, yep, theta_n, theta_p, docv_dCse_n, docv_dCse_p, V_term, time, input_cur_prof, soc_list)
 
-        print("SOC List", np.shape(soc_list))
         if plot_results:
-            self.plot_results(xn, xp, xe, yn, yp, yep, theta_n, theta_p, V_term, time, input_cur_prof, soc_list)
+            self.plot_results(xn, xp, xe, yn, yp, yep, theta_n, theta_p, docv_dCse_n, docv_dCse_p, V_term, time, input_cur_prof, soc_list)
 
         return [xn, xp, xe, yn, yp, yep, theta_n, theta_p, V_term, time, input_cur_prof, soc_list]
 
@@ -338,64 +396,53 @@ class SingleParticleModelElectrolyte:
         theta = [theta_n, theta_p]   # Stoichiometry Ratio Coefficent
         soc_new = self.compute_SOC(theta_n, theta_p)
 
-
         U_n = self.OCV_Anode(theta_n)
         U_p = self.OCV_Cathod(theta_p)
+
+        docv_dCse_n = self.OCP_Slope_Anode(theta_n)
+        docv_dCse_p = self.OCP_Slope_Cathode(theta_p)
+
+        docv_dCse = [docv_dCse_n, docv_dCse_p]
 
         # V_term = U_p - U_n + eta_p - eta_n
         V_term = (U_p - U_n) + (eta_p - eta_n) + vel - Rf * I / (Ar_n * Ln * as_n)  # terminal voltage
         R_film = -Rf * I / (Ar_n * Ln * as_n)
 
         if V_term <= 2.75:
-            return [init_states, outputs, soc_new, V_term, theta]
+            return [init_states, outputs, soc_new, V_term, theta, docv_dCse]
         else:
-            return [states, outputs, soc_new, V_term, theta]
-        # return [states, outputs, soc_new, V_term, theta]
+            return [states, outputs, soc_new, V_term, theta, docv_dCse]
 
 
 if __name__ == "__main__":
 
+    num_iterations = 3600
     SPMe = SingleParticleModelElectrolyte()
 
-    """t_stop = 3600
-    V_list = np.zeros(t_stop)
-    I_list = np.zeros(t_stop)
-    SOC_list = np.zeros(t_stop)
-    time_list = np.zeros(t_stop)
-    #
-    cur_val = 25.67
-    states_0 = None
-    soc_0 = .5
-    #
-    for k in range(0, t_stop):
+    with open("SOC.csv") as file:
+        csv_reader = csv.reader(file, delimiter=",")
 
-        if k == 0:
-            cur_val = 0
-        else:
-            cur_val = 25.67
-    #
-        step_output = SPMe.step(states=states_0, I_input=cur_val, state_of_charge=soc_0, full_sim=True)
-    #
-        [states, outputs, soc_new, V_term, theta] = step_output
-    #
-        states_0 = states
-        soc_0 = soc_new
-    #
-        V_list[k] = V_term
-        I_list[k] = cur_val
-        SOC_list[k] = soc_new[0]
-        time_list[k] = k
-    #
-    plt.figure(0)
-    plt.plot(time_list, V_list)
-    plt.title("Time vs Term. Voltage")
-    plt.figure(1)
-    plt.plot(time_list, SOC_list)
-    plt.title("Time vs SOC")
-    plt.show()"""
+        for i in csv_reader:
+            ML_soc = i
 
-    [xn, xp, xe, yn, yp, yep, theta_n, theta_p, V_term, time, current, soc] = SPMe.sim(CC=True, zero_init_I=True, I_input=25.67, init_SOC=.5, num_iter=3600, plot_results=True)
+    with open("Vterm.csv") as file:
+        csv_reader = csv.reader(file, delimiter=",")
 
+        for v_val in csv_reader:
 
+            ML_vterm = v_val
+
+    sin_val = np.arange(0, 2*np.pi, .1)
+    print(np.shape(sin_val))
+
+    input_signal = [np.sin(sin_val[i]) for i in range(0, 63)]
+
+    [xn, xp, xe, yn, yp, yep, theta_n, theta_p, V_term, time, current, soc] = SPMe.sim(CC=False, zero_init_I=True, I_input=input_signal, init_SOC=.5, num_iter=3600, plot_results=True)
+
+    # with open("SPMe_data.csv", mode="w") as file:
+    #     file_writer = csv.writer(file, delimiter=",")
+    #
+    #     file_writer.writerow(soc)
+    #     file_writer.writerow(V_term)
 
 
