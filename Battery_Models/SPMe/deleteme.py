@@ -1,59 +1,14 @@
-import numpy as np
 from SPMeBatteryParams import *
 
-# from numpy import tanh, exp
-from math import tanh, exp
-import csv
 
-with open("Vterm.csv") as file:
-    csv_reader = csv.reader(file, delimiter=",")
-
-    for v_val in csv_reader:
-        ML_vterm = v_val
-
-print(ML_vterm)
-print(np.shape(ML_vterm))
-print(float(ML_vterm[0]))
+theta_p = .5
+k_p = .5
+cep = 1000
+cs_max_p = 5.1219e+04
 
 
-# v1 = np.zeros([1, 20])
-# v2 = np.zeros([1, 20])
-# v3 = np.zeros([1, 20])
-# v4 = np.zeros([1, 20])
-# v5 = np.zeros([1, 20])
-# v6 = np.zeros([1, 20])
-# v7 = np.zeros([1, 20])
-# v8 = np.zeros([1, 20])
-# v9 = np.zeros([1, 20])
-# v10 = np.zeros([1, 20])
-#
-# print("indiv v", np.shape(v1[0, :]))
-# clip_val = 10
-#
-# vect = np.array([v1[0, :], v2[0, :], v3[0, :], v4[0, :], v5[0, :], v6[0, :], v7[0, :], v8[0, :], v9[0, :], v10[0, :]])
-#
-# print("Vect Shape", np.shape(vect))
-#
-# # vect = np.zeros([10, 20])
-# print(vect)
-#
-# thing = np.ones([10, 1])
-# print(thing)
-#
-# vect[:, 0] = thing[:, 0]
-#
-# print(vect)
-#
-#
-#
-#
-#
-# print("#####################################")
-# print("#####################################")
-#
-# cut_off = 10
-#
-# [n, m] = np.shape(vect)
-# vect = vect[:, :10]
-#
-# print(vect)
+
+rho2p = (R * T) / (2 * 0.5 * F) * ((cep * cs_max_p - (2 * cep * theta_p)) / (cep * theta_p * (cs_max_p - theta_p))) * (1 + 1 / (k_p) ** 2) ** (-0.5)
+
+
+print(rho2p)

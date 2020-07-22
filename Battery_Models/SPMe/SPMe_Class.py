@@ -6,36 +6,16 @@ import csv
 
 
 class SingleParticleModelElectrolyte:
-    def __init__(self, timestep=1, sim_duration=3600):
+    def __init__(self, timestep=1, sim_time=3600):
         # Simulation Settings
         self.dt = timestep
-        self.duration = sim_duration
-        self.time = np.arange(0, self.duration, self.dt)
-        self.num_steps = len(self.time)
+        self.simulation_time = sim_time
+        self.num_steps = self.simulation_time//self.dt
+
+
+        # self.time = np.arange(0, self.duration, self.dt)
         Ts = self.dt
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-        
 
         # Default Input "Current" Settings
         self.default_current = 25.67            # Base Current Draw
@@ -199,7 +179,7 @@ class SingleParticleModelElectrolyte:
     def trim_array(sim_length, valid_length, xn, xp, xe, yn, yp, yep, theta_n, theta_p, docv_n, docv_p, V_term, time, input_cur_prof, soc_list):
 
         if sim_length == valid_length:
-            return [xn, xp, xe, yn, yp, yep, theta_n, theta_p, V_term, time, input_cur_prof, soc_list]
+            return [xn, xp, xe, yn, yp, yep, theta_n, theta_p, docv_n, docv_p, V_term, time, input_cur_prof, soc_list]
         else:
 
             xn = xn[:valid_length]
@@ -218,12 +198,17 @@ class SingleParticleModelElectrolyte:
 
             return [xn, xp, xe, yn, yp, yep, theta_n, theta_p, docv_n, docv_p, V_term, time, input_cur_prof, soc_list]
 
-    def sim(self, init_state=None, zero_init_I=True, I_input=None, CC=True, init_SOC=None, num_iter=3600, plot_results=False):
+    def sim(self, init_state=None, zero_init_I=True, I_input=None, CC=True, init_SOC=None, sim_time=None, delta_t=None, plot_results=False):
         """
         sim function runs complete solution given a timeseries current profile
         :return: [Terminal Voltage (time series), SOC (time Series) Input Current Profile (time series) ]
         """
-        Kup = num_iter
+        if sim_time is not None:
+            self.simulation_time = sim_time
+            self.dt = delta_t
+            self.num_steps = self.simulation_time//self.dt
+
+        Kup = self.num_steps
         # Populate State Variables with Initial Condition
         xn = np.zeros([3, Kup + 1])         # (Pos & neg) "states"
         xp = np.zeros([3, Kup + 1])
@@ -249,9 +234,14 @@ class SingleParticleModelElectrolyte:
             # When CC is True and No value is supplied (assumed) input = default current value
             input_current = self.default_current*np.ones(Kup)
 
-        elif CC is True and I_input is not None:
+        elif CC is True and I_input is not None and len(I_input) == 1:
             # When CC is True and Current Input provided (assumed Scalar) input = UserDef current value
             input_current = I_input*np.ones(Kup)        # If Constant Current Flag is set True
+
+        elif CC is True and I_input is not None and len(I_input) > 1:
+            raise Exception("INVALID input assigned to class.sim() parameter I_input. When CC flag is 'True', I_input ONLY excepts a list of length 1")
+
+
 
         else:
             # When CC is False use User defined list as input current value
@@ -280,17 +270,17 @@ class SingleParticleModelElectrolyte:
                 break
 
             else:
-                val_len = num_iter
+                val_len = self.num_steps
 
             # Update "step"s inputs to continue and update the simulation
             input_state, init_SOC = states, soc_new
 
-        xn, xp, xe, yn, yp, yep, theta_n, theta_p, docv_dCse_n, docv_dCse_p, V_term, time, input_cur_prof, soc_list = self.trim_array(num_iter, val_len, xn, xp, xe, yn, yp, yep, theta_n, theta_p, docv_dCse_n, docv_dCse_p, V_term, time, input_cur_prof, soc_list)
+        xn, xp, xe, yn, yp, yep, theta_n, theta_p, docv_dCse_n, docv_dCse_p, V_term, time, input_cur_prof, soc_list = self.trim_array(self.num_steps, val_len, xn, xp, xe, yn, yp, yep, theta_n, theta_p, docv_dCse_n, docv_dCse_p, V_term, time, input_cur_prof, soc_list)
 
         if plot_results:
             self.plot_results(xn, xp, xe, yn, yp, yep, theta_n, theta_p, docv_dCse_n, docv_dCse_p, V_term, time, input_cur_prof, soc_list)
 
-        return [xn, xp, xe, yn, yp, yep, theta_n, theta_p, V_term, time, input_cur_prof, soc_list]
+        return [xn, xp, xe, yn, yp, yep, theta_n, theta_p, docv_dCse_n, docv_dCse_p,V_term, time, input_cur_prof, soc_list]
 
     def step(self, states=None, I_input=None, state_of_charge=None, full_sim=False, stop_sim=False):
         """
@@ -414,30 +404,37 @@ class SingleParticleModelElectrolyte:
             return [states, outputs, soc_new, V_term, theta, docv_dCse]
 
 
+
+
 if __name__ == "__main__":
 
-    num_iterations = 3600
-    SPMe = SingleParticleModelElectrolyte()
+    SPMe = SingleParticleModelElectrolyte(sim_time=3600)
 
-    with open("SOC.csv") as file:
-        csv_reader = csv.reader(file, delimiter=",")
+    # sin_val = np.arange(0, 2*np.pi, (2*np.pi / SPMe.num_steps))
+    # input_signal = [np.sin(sin_val[i]) for i in range(0, SPMe.num_steps)]
 
-        for i in csv_reader:
-            ML_soc = i
+    range_val = np.arange(0, 2 * np.pi, (2 * np.pi / SPMe.num_steps))
+    input_signal = [np.random.uniform(-25.67, 25.67) for _ in range(0, SPMe.num_steps)]
+    print(np.mean(input_signal))
 
-    with open("Vterm.csv") as file:
-        csv_reader = csv.reader(file, delimiter=",")
 
-        for v_val in csv_reader:
 
-            ML_vterm = v_val
+    [xn, xp, xe, yn, yp, yep, theta_n, theta_p, docv_dCse_n, docv_dCse_p, V_term, time, current, soc] = SPMe.sim(CC=False, zero_init_I=True, I_input=input_signal, init_SOC=.5, plot_results=True)
 
-    sin_val = np.arange(0, 2*np.pi, .1)
-    print(np.shape(sin_val))
 
-    input_signal = [np.sin(sin_val[i]) for i in range(0, 63)]
 
-    [xn, xp, xe, yn, yp, yep, theta_n, theta_p, V_term, time, current, soc] = SPMe.sim(CC=False, zero_init_I=True, I_input=input_signal, init_SOC=.5, num_iter=3600, plot_results=True)
+    # with open("SOC.csv") as file:
+    #     csv_reader = csv.reader(file, delimiter=",")
+    #
+    #     for i in csv_reader:
+    #         ML_soc = i
+    #
+    # with open("Vterm.csv") as file:
+    #     csv_reader = csv.reader(file, delimiter=",")
+    #
+    #     for v_val in csv_reader:
+    #
+    #         ML_vterm = v_val
 
     # with open("SPMe_data.csv", mode="w") as file:
     #     file_writer = csv.writer(file, delimiter=",")
