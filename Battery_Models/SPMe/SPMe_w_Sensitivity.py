@@ -74,10 +74,10 @@ class SingleParticleModelElectrolyte_w_Sensitivity:
 
         # Sensitivities
         # sensitivity realization in time domain for epsilon_sp from third order pade(you can refer to my slides)
-        coef = 3 / (F * Rp ** 6 * as_p ** 2 * Ar_p * Lp)
+        coefp = 3 / (F * Rp ** 6 * as_p ** 2 * Ar_p * Lp)
         self.Sepsi_A_p = np.array([[0, 1, 0], [0, 0, 1], [0, -(3465 * Ds_p ** 2) / Rp ** 4, -(189 * Ds_p) / Rp ** 2]])
         self.Sepsi_B_p = np.array([[0], [0], [1]])
-        self.Sepsi_C_p = coef * np.array([10395 * Ds_p ** 2, 1260 * Ds_p * Rp ** 2, 21 * Rp ** 4])
+        self.Sepsi_C_p = coefp * np.array([10395 * Ds_p ** 2, 1260 * Ds_p * Rp ** 2, 21 * Rp ** 4])
         self.Sepsi_D_p = np.array([0])
 
         [n, m] = np.shape(self.Sepsi_A_p)
@@ -145,7 +145,7 @@ class SingleParticleModelElectrolyte_w_Sensitivity:
     @staticmethod
     def OCV_Cathod(theta):
         Uref = 2.16216 + 0.07645 * tanh(30.834 - 54.4806 * theta) + 2.1581 * tanh(52.294 - 50.294 * theta) - 0.14169 * \
-               tanh(11.0923 - 19.8543 * theta) + 0.2051 * tanh(1.4684 - 5.4888 * theta) + 0.2531 * tanh( \
+               tanh(11.0923 - 19.8543 * theta) + 0.2051 * tanh(1.4684 - 5.4888 * theta) + 0.2531 * tanh(
             (-theta + 0.56478) / 0.1316) - 0.02167 * tanh((theta - 0.525) / 0.006)
 
         return Uref
@@ -174,26 +174,13 @@ class SingleParticleModelElectrolyte_w_Sensitivity:
 
     @staticmethod
     def OCP_Slope_Cathode(theta):
-        docvp_dCsep = 0.07645 * (-54.4806 / cs_max_p) * ((1.0 / cosh(30.834 - 54.4806 * theta)) ** 2) \
-            + 2.1581 * (-50.294 / cs_max_p) * ((cosh(52.294 - 50.294 * theta)) ** (-2)) \
-            + 0.14169 * (19.854 / cs_max_p) * ((cosh(11.0923 - 19.8543 * theta)) ** (-2))\
-            - 0.2051 * (5.4888 / cs_max_p) * ((cosh(1.4684 - 5.4888 * theta)) ** (-2))\
-            - 0.2531 / 0.1316 / cs_max_p * ((cosh((-theta + 0.56478) / 0.1316)) ** (-2))\
-            - 0.02167 / 0.006 / cs_max_p * ((cosh((theta - 0.525) / 0.006)) ** (-2))
+        docvp_dCsep = 0.07645 * (-54.4806 / cs_max_p) * ((1.0 / cosh(30.834 - 54.4806 * theta)) ** 2) + 2.1581 * (-50.294 / cs_max_p) * ((cosh(52.294 - 50.294 * theta)) ** (-2)) + 0.14169 * (19.854 / cs_max_p) * ((cosh(11.0923 - 19.8543 * theta)) ** (-2)) - 0.2051 * (5.4888 / cs_max_p) * ((cosh(1.4684 - 5.4888 * theta)) ** (-2)) - 0.2531 / 0.1316 / cs_max_p * ((cosh((-theta + 0.56478) / 0.1316)) ** (-2)) - 0.02167 / 0.006 / cs_max_p * ((cosh((theta - 0.525) / 0.006)) ** (-2))
 
         return docvp_dCsep
 
     @staticmethod
     def OCP_Slope_Anode(theta):
-        docvn_dCsen = -1.5 * (120.0 / cs_max_n) * np.exp(-120.0 * theta)\
-            + (0.0351 / (0.083 * cs_max_n)) * ((cosh((theta - 0.286) / 0.083)) ** (-2))\
-            - (0.0045 / (cs_max_n * 0.119)) * ((cosh((theta - 0.849) / 0.119)) ** (-2))\
-            - (0.035 / (cs_max_n * 0.05)) * ((cosh((theta - 0.9233) / 0.05)) ** (-2))\
-            - (0.0147 / (cs_max_n * 0.034)) * ((cosh((theta - 0.5) / 0.034)) ** (-2))\
-            - (0.102 / (cs_max_n * 0.142)) * ((cosh((theta - 0.194) / 0.142)) ** (-2))\
-            - (0.022 / (cs_max_n * 0.0164)) * ((cosh((theta - 0.9) / 0.0164)) ** (-2))\
-            - (0.011 / (cs_max_n * 0.0226)) * ((cosh((theta - 0.124) / 0.0226)) ** (-2))\
-            + (0.0155 / (cs_max_n * 0.029)) * ((cosh((theta - 0.105) / 0.029)) ** (-2))\
+        docvn_dCsen = -1.5 * (120.0 / cs_max_n) * np.exp(-120.0 * theta) + (0.0351 / (0.083 * cs_max_n)) * ((cosh((theta - 0.286) / 0.083)) ** (-2)) - (0.0045 / (cs_max_n * 0.119)) * ((cosh((theta - 0.849) / 0.119)) ** (-2)) - (0.035 / (cs_max_n * 0.05)) * ((cosh((theta - 0.9233) / 0.05)) ** (-2)) - (0.0147 / (cs_max_n * 0.034)) * ((cosh((theta - 0.5) / 0.034)) ** (-2)) - (0.102 / (cs_max_n * 0.142)) * ((cosh((theta - 0.194) / 0.142)) ** (-2)) - (0.022 / (cs_max_n * 0.0164)) * ((cosh((theta - 0.9) / 0.0164)) ** (-2)) - (0.011 / (cs_max_n * 0.0226)) * ((cosh((theta - 0.124) / 0.0226)) ** (-2)) + (0.0155 / (cs_max_n * 0.029)) * ((cosh((theta - 0.105) / 0.029)) ** (-2))
 
         return docvn_dCsen
 
@@ -235,7 +222,16 @@ class SingleParticleModelElectrolyte_w_Sensitivity:
         plt.legend(loc="lower left")"""
 
         plt.figure(5)
+        plt.plot(time, docv_p)
+        plt.xlabel("Time (seconds)")
+        plt.ylabel("OCV Slope 'P' Electrode")
+        plt.title("Time vs OCV Slope")
+
+        plt.figure(6)
         plt.plot(time, dV_dEpsi_sp*epsilon_sp)
+        plt.xlabel("Time (seconds)")
+        plt.ylabel(" Epsilon_SP Sensitivity ")
+        plt.title("Time vs Epsilon_SP Sensitivity")
         plt.show()
 
     @staticmethod
@@ -271,9 +267,14 @@ class SingleParticleModelElectrolyte_w_Sensitivity:
 
         Sepsi_p, Sepsi_n, Sdsp_p, Sdsn_n = init_sen_state["Sepsi_p"], init_sen_state["Sepsi_n"], init_sen_state["Sdsp_p"], init_sen_state["Sdsn_n"]
 
+        theta_p = theta_p*cs_max_p
+        theta_n = theta_n* cs_max_n
+
         # state space Output Eqn. realization for epsilon_s (Neg & Pos)
         out_Sepsi_p = self.Sepsi_C_dp @ Sepsi_p
         out_Sepsi_n = self.Sepsi_C_dn @ Sepsi_n
+
+        # print(out_Sepsi_p)
 
         # state space Output Eqn. realization for D_s (neg and Pos)
         out_Sdsp_p = self.Sdsp_C_dp @ Sdsp_p
@@ -292,10 +293,11 @@ class SingleParticleModelElectrolyte_w_Sensitivity:
                 -3 * Jp / (2 * as_p ** 2 * j0_p * Rp))
 
         rho2p = (R * T) / (2 * 0.5 * F) * (cep * cs_max_p - 2 * cep * theta_p) / (
-                    cep * theta_p * (cs_max_p - theta_p)) * (1 + 1 / (k_p) ** 2) ** (-0.5)
+                    cep * theta_p * (cs_max_p - theta_p)) * (1 + (1 / (k_p) ** 2)) ** (-0.5)
 
 
-
+        # print(rho1p, "|", rho2p )
+        # print(theta_p)
         # rho1n_1 = np.sign(I) * (-3 * R * T) / (0.5 * F * Rn * as_n) * ((1 + 1 / k_n ** 2) ** (-0.5))
         rho1n = R * T / (0.5 * F) * (1 / (k_n + (k_n ** 2 + 1) ** 0.5)) * (1 + k_n / ((k_n ** 2 + 1) ** 0.5)) * (
                 -3 * Jn / (2 * as_n ** 2 * j0_n * Rn))
@@ -304,8 +306,8 @@ class SingleParticleModelElectrolyte_w_Sensitivity:
                     cen * theta_n * (cs_max_n - theta_n)) * (1 + 1 / (k_n) ** 2) ** (-0.5)
 
         # sensitivity of epsilon_sp epsilon_sn
-        sen_out_spsi_p = rho1p + (rho2p + docvp_dCsep) * (-1) * out_Sepsi_p
-        sen_out_spsi_n = rho1n + (rho2n + docvn_dCsen) * out_Sepsi_n
+        sen_out_spsi_p = (rho1p + (rho2p + docvp_dCsep)*-out_Sepsi_p)
+        sen_out_spsi_n = (rho1n + (rho2n + docvn_dCsen)*out_Sepsi_n)
 
         out_deta_p_desp = rho1p + rho2p * (-1) * out_Sepsi_p
         out_deta_n_desn = rho1n + rho2n * out_Sepsi_n
@@ -320,8 +322,8 @@ class SingleParticleModelElectrolyte_w_Sensitivity:
         dV_dDsp = sen_out_ds_p
         dV_dDsn = sen_out_ds_n
 
-        dV_dEpsi_sn = sen_out_spsi_p
-        dV_dEpsi_sp = sen_out_spsi_n
+        dV_dEpsi_sn = sen_out_spsi_n
+        dV_dEpsi_sp = sen_out_spsi_p
 
         dCse_dDsp = -1 * out_Sdsp_p * Ds_p
         dCse_dDsn = out_Sdsn_n * Ds_n
@@ -405,6 +407,7 @@ class SingleParticleModelElectrolyte_w_Sensitivity:
 
             dV_dDsn[k], dV_dDsp[k], dCse_dDsn[k], dCse_dDsp[k], dV_dEpsi_sn[k], dV_dEpsi_sp[k] = sen_outputs["dV_dDsn"], sen_outputs["dV_dDsp"], sen_outputs["dCse_dDsn"], sen_outputs["dCse_dDsp"], sen_outputs["dV_dEpsi_sn"], sen_outputs["dV_dEpsi_sp"]
 
+            # print(docv_dCse_n[k])
 
             if V_term[k] <= 2.75:
                 val_len = k
@@ -485,6 +488,7 @@ class SingleParticleModelElectrolyte_w_Sensitivity:
 
         else:
             bat_states = states[0]
+            init_bat_states = bat_states
             init_sen_states = states[1]
 
             # ELSE use given states information to propagate model forward in time
@@ -547,7 +551,6 @@ class SingleParticleModelElectrolyte_w_Sensitivity:
         new_sen_states, new_sen_outputs = self.compute_Sensitivities(I, Jn, Jp, i_0n, i_0p, k_n, k_p, theta_n, theta_p, docv_dCse_n, docv_dCse_p, sensitivity_states)
         sensitivity_outputs = new_sen_outputs
 
-
         # dV_dDsn, dV_dDsp, dCse_dDsn, dCse_dDsp, dV_dEpsi_sn, dV_dEpsi_sp = new_sen_outputs["dV_dDsn"], new_sen_outputs["dV_dDsp"], new_sen_outputs["dCse_dDsn"], new_sen_outputs["dCse_dDsp"], new_sen_outputs["dV_dEpsi_sn"], new_sen_outputs["dV_dEpsi_sp"]
 
         docv_dCse = [docv_dCse_n, docv_dCse_p]
@@ -555,37 +558,18 @@ class SingleParticleModelElectrolyte_w_Sensitivity:
         V_term = (U_p - U_n) + (eta_p - eta_n) + vel - Rf * I / (Ar_n * Ln * as_n)  # terminal voltage
         R_film = -Rf * I / (Ar_n * Ln * as_n)
 
-        if V_term <= 2.75:
-            return [bat_states, sensitivity_states, outputs, sensitivity_outputs, soc_new, V_term, theta, docv_dCse]
+        if V_term <= 2.75: # or V_term >= 4.2:
+            return [init_bat_states, sensitivity_states, outputs, sensitivity_outputs, soc_new, V_term, theta, docv_dCse]
         else:
             return [bat_states, new_sen_states, outputs, sensitivity_outputs, soc_new, V_term, theta, docv_dCse]
 
-
-
-
-
-
-
-
-
-
-
-
-
 if __name__ == "__main__":
 
-    SPMe = SingleParticleModelElectrolyte_w_Sensitivity(sim_time=3600)
-
-    # # sin_val = np.arange(0, 2*np.pi, (2*np.pi / SPMe.num_steps))
-    # # input_signal = [np.sin(sin_val[i]) for i in range(0, SPMe.num_steps)]
-    #
-    # range_val = np.arange(0, 2 * np.pi, (2 * np.pi / SPMe.num_steps))
-    # input_signal = [np.random.uniform(-25.67, 25.67) for _ in range(0, SPMe.num_steps)]
-    # print(np.mean(input_signal))
+    SPMe = SingleParticleModelElectrolyte_w_Sensitivity(sim_time=1300)
 
     [xn, xp, xe, yn, yp, yep, theta_n, theta_p, docv_dCse_n, docv_dCse_p, V_term,
      time, current, soc, dV_dDsn, dV_dDsp, dCse_dDsn, dCse_dDsp, dV_dEpsi_sn, dV_dEpsi_sp]\
-        = SPMe.sim(CC=True, zero_init_I=True, I_input=[25.67], init_SOC=.5, plot_results=True)
+        = SPMe.sim(CC=True, zero_init_I=True, I_input=[-25.67*3], init_SOC=0, plot_results=True)
 
 
 

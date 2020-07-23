@@ -24,7 +24,7 @@ Lsep = 25e-6          # Separator Thickness
 Lc = Ln+Lp+Lsep       # Total Cell Thickness
 
 Ds_n = 3.9e-14        # Solid phase diffusion coefficient (pos & neg)
-Ds_p = 1e-13
+Ds_p = (1e-13)*.5
 De = 2.7877e-10       # Electrolyte Diffusion Coefficient
 De_p = De
 De_n = De
