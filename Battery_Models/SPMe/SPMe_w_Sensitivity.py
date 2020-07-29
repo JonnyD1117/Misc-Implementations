@@ -12,10 +12,8 @@ class SingleParticleModelElectrolyte_w_Sensitivity:
         self.simulation_time = sim_time
         self.num_steps = self.simulation_time//self.dt
 
-
         # self.time = np.arange(0, self.duration, self.dt)
         Ts = self.dt
-
 
         # Default Input "Current" Settings
         self.default_current = 25.67            # Base Current Draw
