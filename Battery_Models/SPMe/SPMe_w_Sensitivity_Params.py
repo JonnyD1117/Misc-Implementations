@@ -167,8 +167,6 @@ class SingleParticleModelElectrolyte_w_Sensitivity(SPMe_Baseline_Parameters):
 
         return
 
-
-
     def expand_parameters(self):
 
         empty_list = []
