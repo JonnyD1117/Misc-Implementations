@@ -1,0 +1,65 @@
+%\documentclass[12pt,draftcls]{ucdavisthesis}
+\documentclass[12pt]{article}
+
+% %\usepackage{bookmark}
+% \usepackage[us,nodayofweek,12hr]{datetime}
+% \usepackage{graphicx}
+% %\usepackage[square,comma,numbers,sort&compress]{natbib}
+% %\usepackage{hypernat}
+% % Other useful packages to try
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{amsfonts}
+% \usepackage{listings}
+% \usepackage{cleveref}
+% \usepackage{siunitx}
+% \usepackage{subcaption}
+% \usepackage{enumerate}
+% \usepackage[short]{optidef}
+% \usepackage[framed,numbered,autolinebreaks,useliterate]{mcode}
+%
+%
+% \usepackage{epsfig}
+% \usepackage{gensymb}
+% \usepackage{graphicx}
+
+\title{Single Particle Model with Electrolyte Dynamics Derivation and Implementation}
+\author{Jonathan Dorsey}
+
+
+\begin{document}
+\maketitle
+\pagebreak
+
+\abstract{In this section I will briefly introduce the ``Single Particle Model'' and it's more accurate exentsion ``Single Particle Model with Electrolyte Dynamics'' as a way of documenting and understanding the basics of this model conceptually, as well as perfroming the requisite mathematics required to concepts into meaningful form which can be directly implemented into a coding lanuage like MATLAB, Python, or C++ for actual simulation purposes. }
+
+\section{Introduction to SPM \& SPMe}
+In order to understand the SPM or SPMe models of a Lithium Ion battery, it is first required to understand the basic components of the model which SPM and SPMe are derived from.
+
+\paragraph{} The primary reference for battery modeling comes from a \textit{first principles} mathematical model of battery dynamics called the \textbf{Doyle-Fuller-Newman} model or \underline{DFN} for short.
+
+\paragraph{} The DFN model considers the electrochemical and diffusion dynamics of the battery to construct a \textit{partial differential equations} based model which describes the changes and dynamics of the physical states of the battery would experience while in operation.
+
+\subsection{Doyle-Fuller-Newman Model}
+The \textit{Doyle-Fuller-Newman Model} (DFN), is the first principles mathematical expressions which predict the evolution of the solid phase lithium concentration, the electrolytic lithium concentration, the solid electric potential, the electrolyte electric potential, the ionic current, and the molar ion fluxes.
+
+\vspace{.25in}
+
+\[ \frac{\partial{c_s^\pm}}{\partial{t}}(x,r,t) = \frac{1}{r^2}\frac{\partial{}}{\partial{r}}[D_s^\pm r^2\frac{\partial{c_s^\pm}}{\partial{r}}(x,r,t)] \]
+
+\[\epsilon_e^j \frac{\partial{c_e^j}}{\partial{t}}(x,t) = \frac{\partial{}}{\partial{x}}[D_e^eff(c_e^j)\frac{c_e^j}{\partial{x}}(x,t) + \frac{1-t_c^0}{F}i_e^j(x,t)]  \]
+
+for $j \in \{-, sep, + \} $
+
+\[ \sigma^{eff,\pm}\cdot\frac{\partial{\phi_s^\pm}}{\partial{x}}(x,t) = i_e^\pm(x,t) - I(t) \]
+
+\[\kappa^{eff}(c_e) \cdot \frac{\partial{\phi_e}}{\partial{x}} (x,t) = -i_e^\pm(x,t) + \kappa^{eff}(c_e) \cdot \frac{2RT}{F}(1-t_c^0)\times(1+\frac{d\ln f_\c/a}{d\ln c_e}(x,t))\frac{\partial{\ln c_e}}{\partial{x}}(x,t)  \]
+
+
+
+
+
+
+
+
+\end{document}
