@@ -37,6 +37,10 @@ class SingleParticleModelElectrolyte_w_Sensitivity(SPMe_Baseline_Parameters):
         self.simulation_time = sim_time
         self.num_steps = self.simulation_time//self.dt
 
+        print(self.dt)
+        print(self.simulation_time)
+        print(self.num_steps)
+
         # self.time = np.arange(0, self.duration, self.dt)
         Ts = self.dt
 
@@ -267,11 +271,18 @@ class SingleParticleModelElectrolyte_w_Sensitivity(SPMe_Baseline_Parameters):
         plt.ylabel("OCV Slope 'P' Electrode")
         plt.title("Time vs OCV Slope")
 
+        # plt.figure(6)
+        # plt.plot(time, dV_dEpsi_sp*self.param['epsilon_sp'])
+        # plt.xlabel("Time (seconds)")
+        # plt.ylabel(" Epsilon_SP Sensitivity ")
+        # plt.title("Time vs Epsilon_SP Sensitivity")
+
         plt.figure(6)
-        plt.plot(time, dV_dEpsi_sp*self.param['epsilon_sp'])
+        plt.plot(time, dV_dDsp * self.param['Ds_p'])
         plt.xlabel("Time (seconds)")
-        plt.ylabel(" Epsilon_SP Sensitivity ")
-        plt.title("Time vs Epsilon_SP Sensitivity")
+        plt.ylabel(" Ds_p Sensitivity ")
+        plt.title("Time vs Ds_p Sensitivity")
+
         plt.show()
 
     @staticmethod
@@ -383,7 +394,7 @@ class SingleParticleModelElectrolyte_w_Sensitivity(SPMe_Baseline_Parameters):
             self.dt = delta_t
             self.num_steps = self.simulation_time//self.dt
 
-        Kup = self.num_steps
+        Kup = int(self.num_steps)
         # Populate State Variables with Initial Condition
         xn = np.zeros([3, Kup + 1])         # (Pos & neg) "states"
         xp = np.zeros([3, Kup + 1])
