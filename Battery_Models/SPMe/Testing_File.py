@@ -3,36 +3,51 @@ import scipy.io
 import numpy as np
 from matplotlib import pyplot as plt
 
-
-
-
 if __name__ == "__main__":
-
     mat = scipy.io.loadmat("I_FUDS.mat")
-    mat2 = scipy.io.loadmat("pulse.mat")
-
-
     I_fuds = mat["I"][0][:]
-    # I_fuds = I_fuds[0][:]
-
-    time_fuds = mat['time'][0][:]
-
-    # time_fuds = time_fuds[0][:]
-
-    I_pulse = mat2["I"][0][:]
-    # I_pulse = I_pulse[0][:]
-    time_pulse = mat2['time'][0][:]
-    # time_pulse = time_pulse[0][:]
-
-    # plt.plot(I_fuds)
-    # plt.show()
 
 
-    SPMe = SingleParticleModelElectrolyte_w_Sensitivity(sim_time=time_pulse[-1].item(), timestep=1)
+    SPMe = SingleParticleModelElectrolyte_w_Sensitivity()
+    thing = np.inf
+    states = None
+    I = -25.67*1
+    time = 3600
 
-    [xn, xp, xe, yn, yp, yep, theta_n, theta_p, docv_dCse_n, docv_dCse_p, V_term,
-    time, current, soc, dV_dDsn, dV_dDsp, dCse_dDsn, dCse_dDsp, dV_dEpsi_sn, dV_dEpsi_sp]\
-    = SPMe.sim(CC=False, zero_init_I=False, I_input= I_pulse, init_SOC=.5, plot_results=True)
+    SOC_0 = 0
+    term_voltage = np.zeros(time,)
+    rec_states = np.zeros(time,)
+    rec_soc = np.zeros(time, )
+    rec_docv_dCse = np.zeros(time,)
+
+    bat_states = {"xn": None, "xp": None, "xe": None}
+    sensitivity_states = {"Sepsi_p": None, "Sepsi_n": None, "Sdsp_p": None, "Sdsn_n": None}
+
+    for t in range(0, time):
+
+        [bat_states, new_sen_states, outputs, sensitivity_outputs, soc_new, V_term, theta, docv_dCse] = SPMe.step(full_sim=True, states=states, I_input=I, state_of_charge=SOC_0)
+
+        states = [bat_states, new_sen_states]
+        SOC_0 = soc_new
+
+        term_voltage[t] = V_term
+        rec_soc[t] = soc_new[0]
+        rec_docv_dCse[t] = docv_dCse[0]
+        # rec_states[t] = states
+
+
+    plt.figure()
+    plt.plot(term_voltage)
+    plt.figure()
+    plt.plot(rec_soc)
+    plt.figure()
+    plt.plot(rec_docv_dCse)
+    plt.show()
+
+
+
+
+
 
 
 

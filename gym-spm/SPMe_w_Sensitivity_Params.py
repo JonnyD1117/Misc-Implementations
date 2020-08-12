@@ -497,13 +497,16 @@ class SingleParticleModelElectrolyte_w_Sensitivity(SPMe_Baseline_Parameters):
         """
         step function runs one iteration of the model given the input current and returns output states and quantities
         States: dict(), I_input: scalar, state_of_charge: scalar
+
         """
+
         [epsilon_sn, epsilon_sp, epsilon_e_n, epsilon_e_p, F, Rn,
          Rp, R, T, Ar_n, Ar_p, Ln, Lp, Lsep, Lc, Ds_n, Ds_p, De,
          De_p, De_n, kn, kp, stoi_n0, stoi_n100, stoi_p0, stoi_p100,
          SOC, cs_max_n, cs_max_p, Rf, as_n, as_p, Vn, Vp, t_plus,
          cep, cen, rfa_n, rfa_p, epsi_sep, epsi_e, epsi_n, gamak,
          kappa, kappa_eff, kappa_eff_sep] = self.expand_parameters()
+
 
         # Create Local Copy of Discrete SS Matrices for Ease of notation when writing Eqns.
         A_dp = self.A_dp
@@ -642,7 +645,6 @@ if __name__ == "__main__":
     [xn, xp, xe, yn, yp, yep, theta_n, theta_p, docv_dCse_n, docv_dCse_p, V_term,
      time, current, soc, dV_dDsn, dV_dDsp, dCse_dDsn, dCse_dDsp, dV_dEpsi_sn, dV_dEpsi_sp]\
         = SPMe.sim(CC=True, zero_init_I=True, I_input=[-25.67*3], init_SOC=0, plot_results=True)
-
 
 
 
