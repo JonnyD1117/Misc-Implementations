@@ -1,6 +1,7 @@
 # # from SPMeBatteryParams import *
 # from math import asinh, tanh, cosh
 # import numpy as np
+# SCOTT IS LEARNING HOW TO USE GIT & GITHUB YAY
 from SPMe_Baseline_Params import SPMe_Baseline_Parameters
 
 class dummy(SPMe_Baseline_Parameters):
