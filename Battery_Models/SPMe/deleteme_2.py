@@ -3,8 +3,7 @@
 
 
 
-for i in range(0, 10):
-	print("Hello Scott")
+# THAT CODE WAS GARBAGE: Try again with something better. 
 
 
 # This is an extra Comment
