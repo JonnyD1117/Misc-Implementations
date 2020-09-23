@@ -6,10 +6,10 @@ env = gym.make('gym_newcartpole:newcartpole-v0')
 
 # env = gym.make('CartPole-v0')
 
-# model = PPO('MlpPolicy', env, verbose=1)
-# model.learn(total_timesteps=60000)
+model = PPO('MlpPolicy', env, verbose=1, tensorboard_log="./TB_log")
+model.learn(total_timesteps=60000)
 
-model = PPO.load("saved_models/Lagrange_Dynamics_CartPole_Model.zip")
+# model = PPO.load("saved_models/Lagrange_Dynamics_CartPole_Model.zip")
 # obs = env.reset()
 # for i in range(1000):
 #     action, _states = model.predict(obs, deterministic=True)
