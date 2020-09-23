@@ -1,3 +1,4 @@
+# This is Practice Generating Vector/Direction Fields using NP
 delta_t = .05
 delta_y = .05
 
